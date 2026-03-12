@@ -4,3 +4,11 @@ compatibility_date = "2024-01-01"
 
 [site]
 bucket = "./public"
+
+[vars]
+ETHEREUM_RPC = "https://eth.llamarpc.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nft_etheroi"
+database_id = "bccc0a52-01a9-44c8-87ed-6cd658842536"
