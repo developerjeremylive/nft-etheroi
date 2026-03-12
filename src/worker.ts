@@ -18,29 +18,71 @@ export interface NFT {
   tags: string[];
 }
 
-export interface User {
-  id: string;
-  address: string;
-  username: string;
-  avatar: string;
-  bio: string;
-  nfts: string[];
-  createdAt: number;
-}
-
 export interface Env {
   NFT_METADATA: KVNamespace;
 }
 
-// In-memory storage for demo (would use KV in production)
-const nfts: Map<string, NFT> = new Map();
-const users: Map<string, User> = new Map();
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    
+    // Handle API requests
+    if (url.pathname.startsWith('/api/')) {
+      return handleAPI(request, url);
+    }
+    
+    // Handle static files
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      return new Response(HTML_CONTENT, {
+        headers: { 'Content-Type': 'text/html' }
+      });
+    }
+    
+    if (url.pathname === '/manifest.json') {
+      return new Response(MANIFEST_JSON, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    if (url.pathname === '/sw.js') {
+      return new Response(SW_CODE, {
+        headers: { 'Content-Type': 'application/javascript' }
+      });
+    }
+    
+    return new Response('Not Found', { status: 404 });
+  }
+};
 
-// Initialize with sample data
-function initializeSampleData() {
-  if (nfts.size > 0) return;
+function handleAPI(request: Request, url: URL): Response {
+  const path = url.pathname;
+  
+  // GET /api/nfts - Get sample NFTs
+  if (path === '/api/nfts' && request.method === 'GET') {
+    const sampleNFTs = getSampleNFTs();
+    return new Response(JSON.stringify(sampleNFTs), {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+  
+  // POST /api/nfts - Create NFT (returns sample data, actual storage is client-side)
+  if (path === '/api/nfts' && request.method === 'POST') {
+    return new Response(JSON.stringify({ success: true, message: 'NFT stored locally' }), {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+  
+  return new Response('API endpoint not found', { status: 404 });
+}
 
-  const sampleNFTs: NFT[] = [
+function getSampleNFTs(): NFT[] {
+  return [
     {
       id: "1",
       name: "Cosmic Dreams #001",
@@ -122,33 +164,58 @@ function initializeSampleData() {
       tags: ["art", "vr", "dream"]
     }
   ];
+}
 
-  sampleNFTs.forEach(nft => nfts.set(nft.id, nft));
-
-  // Sample users
-  const sampleUsers: User[] = [
+const MANIFEST_JSON = JSON.stringify({
+  "name": "NFT.etheroi",
+  "short_name": "etheroi",
+  "description": "Create, buy, sell and collect unique digital objects",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#6C63FF",
+  "icons": [
     {
-      id: "1",
-      address: "0x1234...abcd",
-      username: "CryptoArtist",
-      avatar: "https://picsum.photos/seed/user1/100/100",
-      bio: "Digital artist exploring new frontiers",
-      nfts: ["1"],
-      createdAt: Date.now() - 86400000 * 30
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
-      id: "2",
-      address: "0x5678...efgh",
-      username: "NFtCollector",
-      avatar: "https://picsum.photos/seed/user2/100/100",
-      bio: "Collector of unique digital treasures",
-      nfts: ["2"],
-      createdAt: Date.now() - 86400000 * 20
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ];
+  ]
+}, null, 2);
 
-  sampleUsers.forEach(user => users.set(user.id, user));
-}
+const SW_CODE = `const CACHE_NAME = 'nft-etheroi-v1';
+const urlsToCache = ['/', '/index.html', '/manifest.json'];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((cacheNames) => {
+    return Promise.all(cacheNames.map((cacheName) => {
+      if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
+    }));
+  }));
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(caches.match(event.request).then((response) => {
+    if (response) return response;
+    return fetch(event.request).then((response) => {
+      if (!response || response.status !== 200 || response.type !== 'basic') return response;
+      const responseToCache = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+      return response;
+    });
+  }));
+});`;
 
 const HTML_CONTENT = `<!DOCTYPE html>
 <html lang="en">
@@ -159,7 +226,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
   <meta name="theme-color" content="#6C63FF">
   <title>NFT.etheroi - Digital Art Marketplace</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/images/icon-192.png">
   <style>
     :root {
       --primary: #6C63FF;
@@ -173,11 +239,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       --success: #00d4aa;
     }
     
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -187,7 +249,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       line-height: 1.6;
     }
     
-    /* Animated Background */
     .bg-animation {
       position: fixed;
       top: 0;
@@ -215,7 +276,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       50% { transform: translate(-5%, -5%) rotate(5deg); }
     }
     
-    /* Header */
     header {
       background: rgba(26, 26, 46, 0.9);
       backdrop-filter: blur(20px);
@@ -245,26 +305,12 @@ const HTML_CONTENT = `<!DOCTYPE html>
       background-clip: text;
     }
     
-    .logo span {
-      font-weight: 300;
-    }
+    .logo span { font-weight: 300; }
     
-    nav {
-      display: flex;
-      gap: 2rem;
-      align-items: center;
-    }
-    
-    nav a {
-      color: var(--gray);
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s;
-    }
-    
-    nav a:hover, nav a.active {
-      color: var(--primary);
-    }
+    nav { display: flex; gap: 2rem; align-items: center; }
+    nav a { color: var(--gray); text-decoration: none; font-weight: 500; transition: color 0.3s; }
+    nav a:hover, nav a.active { color: var(--primary); }
+    nav .hidden { display: none !important; }
     
     .btn {
       padding: 0.6rem 1.5rem;
@@ -298,7 +344,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       color: white;
     }
     
-    /* Main Content */
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #e55555;
+    }
+    
     main {
       padding-top: 100px;
       max-width: 1400px;
@@ -308,7 +362,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       padding-bottom: 4rem;
     }
     
-    /* Hero Section */
     .hero {
       text-align: center;
       padding: 4rem 0;
@@ -334,19 +387,9 @@ const HTML_CONTENT = `<!DOCTYPE html>
       margin: 0 auto 2rem;
     }
     
-    .hero-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-    }
+    .hero-buttons { display: flex; gap: 1rem; justify-content: center; }
     
-    /* Filters */
-    .filters {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-    }
+    .filters { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
     
     .filter-btn {
       padding: 0.5rem 1.2rem;
@@ -364,7 +407,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       border-color: var(--primary);
     }
     
-    /* NFT Grid */
     .nft-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -386,39 +428,13 @@ const HTML_CONTENT = `<!DOCTYPE html>
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     }
     
-    .nft-image {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-    }
+    .nft-image { width: 100%; aspect-ratio: 1; object-fit: cover; }
+    .nft-info { padding: 1.2rem; }
+    .nft-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .nft-creator { font-size: 0.85rem; color: var(--gray); margin-bottom: 1rem; }
     
-    .nft-info {
-      padding: 1.2rem;
-    }
-    
-    .nft-name {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-    
-    .nft-creator {
-      font-size: 0.85rem;
-      color: var(--gray);
-      margin-bottom: 1rem;
-    }
-    
-    .nft-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .nft-price {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--secondary);
-    }
+    .nft-footer { display: flex; justify-content: space-between; align-items: center; }
+    .nft-price { font-size: 1rem; font-weight: 700; color: var(--secondary); }
     
     .nft-status {
       font-size: 0.75rem;
@@ -433,7 +449,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       color: var(--danger);
     }
     
-    /* Modal */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -448,9 +463,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       padding: 2rem;
     }
     
-    .modal-overlay.active {
-      display: flex;
-    }
+    .modal-overlay.active { display: flex; }
     
     .modal {
       background: var(--dark);
@@ -459,6 +472,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
+      position: relative;
       animation: modalIn 0.3s ease;
     }
     
@@ -467,15 +481,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
       to { opacity: 1; transform: scale(1); }
     }
     
-    .modal-image {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-    }
-    
-    .modal-content {
-      padding: 2rem;
-    }
+    .modal-image { width: 100%; aspect-ratio: 1; object-fit: cover; }
+    .modal-content { padding: 2rem; }
     
     .modal-close {
       position: absolute;
@@ -491,15 +498,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
       font-size: 1.5rem;
     }
     
-    .modal h2 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    .modal-description {
-      color: var(--gray);
-      margin-bottom: 1.5rem;
-    }
+    .modal h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .modal-description { color: var(--gray); margin-bottom: 1.5rem; }
     
     .modal-details {
       display: grid;
@@ -514,17 +514,9 @@ const HTML_CONTENT = `<!DOCTYPE html>
       border-radius: 12px;
     }
     
-    .detail-label {
-      font-size: 0.8rem;
-      color: var(--gray);
-      margin-bottom: 0.3rem;
-    }
+    .detail-label { font-size: 0.8rem; color: var(--gray); margin-bottom: 0.3rem; }
+    .detail-value { font-weight: 600; }
     
-    .detail-value {
-      font-weight: 600;
-    }
-    
-    /* Sections */
     .section-title {
       font-size: 2rem;
       margin-bottom: 2rem;
@@ -540,7 +532,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       background: linear-gradient(90deg, var(--primary), transparent);
     }
     
-    /* Features */
     .features {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -562,21 +553,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
       transform: translateY(-5px);
     }
     
-    .feature-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
+    .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .feature-card h3 { margin-bottom: 0.5rem; }
+    .feature-card p { color: var(--gray); font-size: 0.9rem; }
     
-    .feature-card h3 {
-      margin-bottom: 0.5rem;
-    }
-    
-    .feature-card p {
-      color: var(--gray);
-      font-size: 0.9rem;
-    }
-    
-    /* Create Form */
     .create-section {
       max-width: 600px;
       margin: 0 auto;
@@ -586,15 +566,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
     
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-    }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
     
     .form-group input,
     .form-group textarea,
@@ -615,7 +588,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       border-color: var(--primary);
     }
     
-    /* Footer */
     footer {
       background: var(--dark);
       padding: 3rem 2rem;
@@ -623,11 +595,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
       border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
     
-    footer p {
-      color: var(--gray);
-    }
+    footer p { color: var(--gray); }
     
-    /* Toast */
     .toast {
       position: fixed;
       bottom: 2rem;
@@ -642,51 +611,133 @@ const HTML_CONTENT = `<!DOCTYPE html>
       z-index: 300;
     }
     
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: var(--danger); }
+    .toast.success { background: var(--success); }
     
-    /* Loading */
-    .loading {
+    /* Login Modal */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 4rem;
+      z-index: 500;
     }
     
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid rgba(108, 99, 255, 0.3);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    .login-overlay.hidden { display: none; }
+    
+    .login-card {
+      background: var(--dark);
+      border-radius: 24px;
+      padding: 3rem;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      animation: modalIn 0.3s ease;
     }
     
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .login-card h2 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     
-    /* Mobile */
+    .login-card p { color: var(--gray); margin-bottom: 2rem; }
+    
+    .login-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .login-input-group {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    
+    .login-input-group input {
+      width: 100%;
+      padding: 1rem 1rem 1rem 3rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--light);
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    
+    .login-input-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+    }
+    
+    .login-input-group::before {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
+      font-size: 1.2rem;
+    }
+    
+    .login-input-email::before { content: '✉️'; }
+    .login-input-password::before { content: '🔒'; }
+    
+    .login-forgot {
+      display: block;
+      margin-top: 1rem;
+      color: var(--primary);
+      font-size: 0.85rem;
+      text-decoration: none;
+    }
+    
+    .login-forgot:hover { text-decoration: underline; }
+    
+    .login-error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    
+    .login-error.show { display: block; }
+    
     @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2rem;
-      }
-      
-      nav {
-        display: none;
-      }
-      
-      .nft-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 1rem;
-      }
+      .hero h1 { font-size: 2rem; }
+      nav { display: none; }
+      .nft-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
     }
   </style>
 </head>
 <body>
   <div class="bg-animation"></div>
+  
+  <!-- Login Modal -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <h2>Welcome Back</h2>
+      <p>Sign in to continue to NFT.etheroi</p>
+      <div class="login-error" id="loginError">Invalid email or password</div>
+      <form id="loginForm">
+        <div class="login-input-group login-input-email">
+          <input type="email" name="email" placeholder="Email address" required>
+        </div>
+        <div class="login-input-group login-input-password">
+          <input type="password" name="password" placeholder="Password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Sign In</button>
+      </form>
+    </div>
+  </div>
   
   <header>
     <div class="header-content">
@@ -694,16 +745,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       <nav>
         <a href="#" class="active" data-page="home">Home</a>
         <a href="#" data-page="marketplace">Marketplace</a>
-        <a href="#" data-page="create">Create</a>
-        <a href="#" data-page="gallery">Gallery</a>
-        <button class="btn btn-primary">Connect Wallet</button>
+        <a href="#" data-page="create" class="protected hidden">Create</a>
+        <a href="#" data-page="gallery" class="protected hidden">Gallery</a>
+        <button class="btn btn-primary" id="connectBtn">Connect Wallet</button>
+        <button class="btn btn-danger hidden" id="logoutBtn">Logout</button>
       </nav>
     </div>
   </header>
   
-  <main id="app">
-    <!-- Content loaded dynamically -->
-  </main>
+  <main id="app"></main>
   
   <footer>
     <p>&copy; 2026 NFT.etheroi. All rights reserved. Built on blockchain technology.</p>
@@ -742,15 +792,80 @@ const HTML_CONTENT = `<!DOCTYPE html>
   <div class="toast" id="toast"></div>
   
   <script>
+    // Credentials (hardcoded)
+    const VALID_CREDENTIALS = {
+      email: 'developerjeremylive@gmail.com',
+      password: '123123'
+    };
+    
+    let currentFilter = 'all';
     let currentPage = 'home';
     let nfts = [];
+    let userNFTs = [];
+    let isLoggedIn = false;
     let selectedNFT = null;
+    
+    // Check login status on load
+    function checkLogin() {
+      const loginStatus = localStorage.getItem('nft_etheroi_logged_in');
+      if (loginStatus === 'true') {
+        isLoggedIn = true;
+        showLoggedInUI();
+        loadUserNFTs();
+      }
+    }
+    
+    function showLoggedInUI() {
+      document.getElementById('loginOverlay').classList.add('hidden');
+      document.getElementById('connectBtn').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+      document.querySelectorAll('.protected').forEach(el => el.classList.remove('hidden'));
+    }
+    
+    function showLoggedOutUI() {
+      document.getElementById('loginOverlay').classList.remove('hidden');
+      document.getElementById('connectBtn').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+      document.querySelectorAll('.protected').forEach(el => el.classList.add('hidden'));
+    }
+    
+    // Login handler
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const email = formData.get('email');
+      const password = formData.get('password');
+      
+      if (email === VALID_CREDENTIALS.email && password === VALID_CREDENTIALS.password) {
+        isLoggedIn = true;
+        localStorage.setItem('nft_etheroi_logged_in', 'true');
+        showLoggedInUI();
+        loadUserNFTs();
+        showToast('Welcome back!', 'success');
+      } else {
+        document.getElementById('loginError').classList.add('show');
+      }
+    });
+    
+    // Logout handler
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      isLoggedIn = false;
+      localStorage.removeItem('nft_etheroi_logged_in');
+      showLoggedOutUI();
+      navigate('home');
+      showToast('Logged out successfully', 'success');
+    });
     
     // Router
     function navigate(page) {
+      if (!isLoggedIn && (page === 'create' || page === 'gallery')) {
+        showToast('Please login to access this feature');
+        return;
+      }
       currentPage = page;
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-      document.querySelector(\`[data-page="\${page}"]\`).classList.add('active');
+      const navLink = document.querySelector('[data-page="' + page + '"]');
+      if (navLink) navLink.classList.add('active');
       render();
     }
     
@@ -761,22 +876,33 @@ const HTML_CONTENT = `<!DOCTYPE html>
       });
     });
     
+    // Connect Wallet (demo)
+    document.getElementById('connectBtn').addEventListener('click', () => {
+      if (!isLoggedIn) {
+        showToast('Please login first');
+      } else {
+        showToast('Wallet connected!', 'success');
+      }
+    });
+    
     // Render functions
     function render() {
       const app = document.getElementById('app');
-      
       switch(currentPage) {
         case 'home':
           app.innerHTML = renderHome();
+          fetchNFTs();
           break;
         case 'marketplace':
           app.innerHTML = renderMarketplace();
+          fetchNFTs();
           break;
         case 'create':
           app.innerHTML = renderCreate();
           break;
         case 'gallery':
           app.innerHTML = renderGallery();
+          renderUserNFTs();
           break;
       }
     }
@@ -821,8 +947,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
               <p>Showcase your collection in virtual galleries</p>
             </div>
           </div>
-        </section>
-      \`;
+        </section>\`;
     }
     
     function renderMarketplace() {
@@ -832,10 +957,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <button class="filter-btn active" data-filter="all">All</button>
           <button class="filter-btn" data-filter="sale">For Sale</button>
           <button class="filter-btn" data-filter="auction">Auctions</button>
-          <button class="filter-btn" data-filter="art">Art</button>
         </div>
-        <div class="nft-grid" id="marketplaceGrid"></div>
-      \`;
+        <div class="nft-grid" id="marketplaceGrid"></div>\`;
     }
     
     function renderCreate() {
@@ -868,71 +991,108 @@ const HTML_CONTENT = `<!DOCTYPE html>
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Create NFT</button>
           </form>
-        </div>
-      \`;
+        </div>\`;
     }
     
     function renderGallery() {
       return \`
         <h2 class="section-title">My Gallery</h2>
-        <div class="nft-grid" id="galleryGrid"></div>
-      \`;
+        <div class="nft-grid" id="galleryGrid"></div>\`;
     }
     
-    // Fetch NFTs from worker
+    // Fetch NFTs from API
     async function fetchNFTs() {
       try {
         const response = await fetch('/api/nfts');
-        nfts = await response.json();
+        const serverNFTs = await response.json();
+        
+        // Merge with locally stored NFTs
+        const localNFTs = JSON.parse(localStorage.getItem('nft_etheroi_nfts') || '[]');
+        nfts = [...serverNFTs, ...localNFTs];
+        
         renderNFTs();
       } catch (error) {
         console.error('Error fetching NFTs:', error);
       }
     }
     
+    function loadUserNFTs() {
+      userNFTs = JSON.parse(localStorage.getItem('nft_etheroi_nfts') || '[]');
+    }
+    
     function renderNFTs() {
       const featuredGrid = document.getElementById('featuredGrid');
       const marketplaceGrid = document.getElementById('marketplaceGrid');
-      const galleryGrid = document.getElementById('galleryGrid');
       
-      const nftCards = nfts.map(nft => createNFTCard(nft)).join('');
+      // Filter NFTs based on current filter
+      let filteredNFTs = nfts;
+      if (currentFilter === 'sale') {
+        filteredNFTs = nfts.filter(nft => nft.forSale && !nft.auction);
+      } else if (currentFilter === 'auction') {
+        filteredNFTs = nfts.filter(nft => nft.auction);
+      }
       
-      if (featuredGrid) featuredGrid.innerHTML = nftCards;
-      if (marketplaceGrid) marketplaceGrid.innerHTML = nftCards;
-      if (galleryGrid) galleryGrid.innerHTML = nftCards.length ? nftCards : '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No NFTs in gallery yet</p>';
+      const nftCards = filteredNFTs.map(nft => createNFTCard(nft)).join('');
+      
+      if (featuredGrid) featuredGrid.innerHTML = nfts.slice(0, 4).map(nft => createNFTCard(nft)).join('');
+      if (marketplaceGrid) {
+        if (filteredNFTs.length === 0) {
+          marketplaceGrid.innerHTML = '<p style="color: var(--gray); grid-column: 1/-1; text-align: center; padding: 2rem;">No NFTs found for this filter</p>';
+        } else {
+          marketplaceGrid.innerHTML = nftCards;
+        }
+      }
     }
     
-    function createNFTCard(nft) {
+    function renderUserNFTs() {
+      const galleryGrid = document.getElementById('galleryGrid');
+      if (!galleryGrid) return;
+      
+      if (userNFTs.length === 0) {
+        galleryGrid.innerHTML = '<p style="color: var(--gray); grid-column: 1/-1; text-align: center; padding: 2rem;">No NFTs created yet. Go to Create to mint your first NFT!</p>';
+        return;
+      }
+      
+      galleryGrid.innerHTML = userNFTs.map(nft => createNFTCard(nft, true)).join('');
+    }
+    
+    function createNFTCard(nft, isOwner = false) {
       const status = nft.auction ? 'Auction' : (nft.forSale ? 'For Sale' : 'Not for Sale');
       const statusClass = nft.auction ? 'auction' : '';
+      const ownerLabel = isOwner ? '<span style="color: var(--secondary); font-size: 0.75rem;">(Your NFT)</span>' : '';
       
       return \`
         <div class="nft-card" onclick="openModal('\${nft.id}')">
           <img src="\${nft.image}" alt="\${nft.name}" class="nft-image">
           <div class="nft-info">
-            <h3 class="nft-name">\${nft.name}</h3>
+            <h3 class="nft-name">\${nft.name} \${ownerLabel}</h3>
             <p class="nft-creator">by \${nft.creator}</p>
             <div class="nft-footer">
               <span class="nft-price">\${nft.price} ETH</span>
               <span class="nft-status \${statusClass}">\${status}</span>
             </div>
           </div>
-        </div>
-      \`;
+        </div>\`;
     }
     
     // Modal functions
     function openModal(nftId) {
-      selectedNFT = nfts.find(n => n.id === nftId);
-      if (!selectedNFT) return;
+      // Check if it's a user NFT
+      let foundNFT = nfts.find(n => n.id === nftId);
+      if (!foundNFT) {
+        foundNFT = userNFTs.find(n => n.id === nftId);
+      }
+      if (!foundNFT) return;
       
-      document.getElementById('modalImage').src = selectedNFT.image;
-      document.getElementById('modalTitle').textContent = selectedNFT.name;
-      document.getElementById('modalDescription').textContent = selectedNFT.description;
-      document.getElementById('modalCreator').textContent = selectedNFT.creator;
-      document.getElementById('modalOwner').textContent = selectedNFT.owner;
-      document.getElementById('modalPrice').textContent = selectedNFT.price + ' ETH';
-      document.getElementById('modalStatus').textContent = selectedNFT.auction ? 'On Auction' : (selectedNFT.forSale ? 'For Sale' : 'Not Listed');
+      selectedNFT = foundNFT;
+      
+      document.getElementById('modalImage').src = foundNFT.image;
+      document.getElementById('modalTitle').textContent = foundNFT.name;
+      document.getElementById('modalDescription').textContent = foundNFT.description;
+      document.getElementById('modalCreator').textContent = foundNFT.creator;
+      document.getElementById('modalOwner').textContent = foundNFT.owner;
+      document.getElementById('modalPrice').textContent = foundNFT.price + ' ETH';
+      document.getElementById('modalStatus').textContent = foundNFT.auction ? 'On Auction' : (foundNFT.forSale ? 'For Sale' : 'Not Listed');
       
       document.getElementById('modal').classList.add('active');
     }
@@ -942,56 +1102,64 @@ const HTML_CONTENT = `<!DOCTYPE html>
       selectedNFT = null;
     }
     
-    // Close modal on overlay click
     document.getElementById('modal').addEventListener('click', (e) => {
       if (e.target.id === 'modal') closeModal();
     });
     
     function buyNFT() {
       if (!selectedNFT) return;
-      showToast(\`Purchasing \${selectedNFT.name}...\`);
+      showToast(\`Purchasing \${selectedNFT.name}...\`, 'success');
       setTimeout(() => {
-        showToast('Purchase simulation: NFT acquired!');
+        showToast('Purchase simulation: NFT acquired!', 'success');
         closeModal();
       }, 2000);
     }
     
-    // Form handling
+    // Form handling - Create NFT
     document.addEventListener('submit', async (e) => {
       if (e.target.id === 'createForm') {
         e.preventDefault();
+        
+        if (!isLoggedIn) {
+          showToast('Please login first');
+          return;
+        }
+        
         const formData = new FormData(e.target);
-        const nft = {
+        const newNFT = {
+          id: 'user_' + Date.now(),
           name: formData.get('name'),
           description: formData.get('description'),
           image: formData.get('image'),
           price: parseFloat(formData.get('price')),
           forSale: formData.get('forSale') === 'yes',
-          auction: false
+          auction: false,
+          creator: '0xUser...1234',
+          owner: '0xUser...1234',
+          createdAt: Date.now(),
+          tags: []
         };
         
-        try {
-          const response = await fetch('/api/nfts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nft)
-          });
-          
-          if (response.ok) {
-            showToast('NFT created successfully!');
-            e.target.reset();
-            navigate('marketplace');
-          }
-        } catch (error) {
-          showToast('Error creating NFT');
-        }
+        // Save to localStorage
+        const storedNFTs = JSON.parse(localStorage.getItem('nft_etheroi_nfts') || '[]');
+        storedNFTs.push(newNFT);
+        localStorage.setItem('nft_etheroi_nfts', JSON.stringify(storedNFTs));
+        
+        userNFTs = storedNFTs;
+        
+        showToast('NFT created successfully!', 'success');
+        e.target.reset();
+        
+        // Navigate to gallery to see the new NFT
+        setTimeout(() => navigate('gallery'), 1500);
       }
     });
     
     // Toast
-    function showToast(message) {
+    function showToast(message, type = '') {
       const toast = document.getElementById('toast');
       toast.textContent = message;
+      toast.className = 'toast ' + type;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
@@ -1001,189 +1169,16 @@ const HTML_CONTENT = `<!DOCTYPE html>
       if (e.target.classList.contains('filter-btn')) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
+        
+        // Update filter and re-render NFTs
+        currentFilter = e.target.dataset.filter;
+        renderNFTs();
       }
     });
     
     // Initialize
-    fetchNFTs();
+    checkLogin();
+    render();
   </script>
 </body>
 </html>`;
-
-const API_HTML = `{
-  "error": "API endpoint"
-}`;
-
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    
-    // Initialize sample data
-    initializeSampleData();
-    
-    // Handle API requests
-    if (url.pathname.startsWith('/api/')) {
-      return await handleAPI(request, url, nfts, users);
-    }
-    
-    // Handle static files
-    if (url.pathname === '/' || url.pathname === '/index.html') {
-      return new Response(HTML_CONTENT, {
-        headers: { 'Content-Type': 'text/html' }
-      });
-    }
-    
-    if (url.pathname === '/manifest.json') {
-      return new Response(MANIFEST_JSON, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Service Worker
-    if (url.pathname === '/sw.js') {
-      return new Response(SW_CODE, {
-        headers: { 'Content-Type': 'application/javascript' }
-      });
-    }
-    
-    // 404 for other routes
-    return new Response('Not Found', { status: 404 });
-  }
-};
-
-async function handleAPI(request: Request, url: URL, nfts: Map<string, NFT>, users: Map<string, User>): Promise<Response> {
-  const path = url.pathname;
-  
-  // GET /api/nfts - List all NFTs
-  if (path === '/api/nfts' && request.method === 'GET') {
-    const nftList = Array.from(nfts.values()).sort((a, b) => b.createdAt - a.createdAt);
-    return new Response(JSON.stringify(nftList), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-  
-  // POST /api/nfts - Create new NFT
-  if (path === '/api/nfts' && request.method === 'POST') {
-    try {
-      const data = await request.json() as Partial<NFT>;
-      const id = String(nfts.size + 1);
-      const newNFT: NFT = {
-        id,
-        name: data.name || 'Untitled',
-        description: data.description || '',
-        image: data.image || '',
-        creator: '0x0000...0000',
-        owner: '0x0000...0000',
-        price: data.price || 0,
-        forSale: data.forSale || false,
-        auction: data.auction || false,
-        createdAt: Date.now(),
-        tags: data.tags || []
-      };
-      nfts.set(id, newNFT);
-      return new Response(JSON.stringify(newNFT), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } catch {
-      return new Response('Invalid JSON', { status: 400 });
-    }
-  }
-  
-  // GET /api/nfts/:id - Get single NFT
-  const nftMatch = path.match(/^\/api\/nfts\/(.+)$/);
-  if (nftMatch && request.method === 'GET') {
-    const nft = nfts.get(nftMatch[1]);
-    if (nft) {
-      return new Response(JSON.stringify(nft), {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    return new Response('NFT not found', { status: 404 });
-  }
-  
-  // GET /api/users - List users
-  if (path === '/api/users' && request.method === 'GET') {
-    const userList = Array.from(users.values());
-    return new Response(JSON.stringify(userList), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-  
-  return new Response('API endpoint not found', { status: 404 });
-}
-
-const MANIFEST_JSON = JSON.stringify({
-  "name": "NFT.etheroi",
-  "short_name": "etheroi",
-  "description": "Create, buy, sell and collect unique digital objects",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0f0f1a",
-  "theme_color": "#6C63FF",
-  "icons": [
-    {
-      "src": "/images/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/images/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
-}, null, 2);
-
-const SW_CODE = `// Service Worker for NFT.etheroi PWA
-const CACHE_NAME = 'nft-etheroi-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          return response;
-        });
-      })
-  );
-});`;
