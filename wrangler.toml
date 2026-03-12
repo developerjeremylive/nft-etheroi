@@ -7,3 +7,10 @@ bucket = "./public"
 
 [vars]
 ETHEREUM_RPC = "https://eth.llamarpc.com"
+
+# To enable D1 database, uncomment and run: npx wrangler d1 create nft-etheroi
+# Then replace with your D1 database_id
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "nft_etheroi"
+# database_id = "YOUR_D1_ID"

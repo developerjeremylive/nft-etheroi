@@ -587,10 +587,52 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .wallet-detail-value { font-weight: 600; font-size: 0.9rem; word-break: break-all; }
     .wallet-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
     .wallet-address { display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.05); padding: 0.8rem 1rem; border-radius: 12px; font-family: monospace; font-size: 0.9rem; }
-    .wallet-connect { text-align: center; padding: 3rem 2rem; }
+    .wallet-connect { text-align: center; padding: 2rem; }
     .wallet-connect-icon { font-size: 4rem; margin-bottom: 1rem; }
     .wallet-connect h3 { margin-bottom: 0.5rem; }
     .wallet-connect p { color: var(--gray); margin-bottom: 1.5rem; }
+    .wallet-info-card { 
+      background: rgba(108, 99, 255, 0.1); 
+      border: 1px solid rgba(108, 99, 255, 0.3); 
+      border-radius: 16px; 
+      padding: 1.5rem; 
+      margin-bottom: 1.5rem; 
+      text-align: left;
+    }
+    .wallet-info-card h4 { 
+      color: var(--primary); 
+      font-size: 1rem; 
+      margin-bottom: 0.5rem; 
+      margin-top: 1rem;
+    }
+    .wallet-info-card h4:first-child { margin-top: 0; }
+    .wallet-info-card p { 
+      color: var(--light); 
+      font-size: 0.9rem; 
+      line-height: 1.5; 
+      margin-bottom: 0.5rem;
+    }
+    .wallet-info-card ul {
+      margin: 0.5rem 0;
+      padding-left: 1.2rem;
+      color: var(--light);
+      font-size: 0.9rem;
+    }
+    .wallet-info-card li {
+      margin-bottom: 0.3rem;
+    }
+    .wallet-info-card strong {
+      color: var(--secondary);
+    }
+    .btn-large {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+    }
+    .wallet-supported {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
     .wallet-error { background: rgba(255, 107, 107, 0.1); border: 1px solid var(--danger); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; color: var(--danger); text-align: left; }
     .wallet-loading { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem; color: var(--gray); }
     .spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -953,15 +995,42 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <div class="wallet-connect-icon">🔗</div>
           <h3>Connect Your Wallet</h3>
           <p>Connect your cryptocurrency wallet to buy, sell, and manage NFTs on the marketplace.</p>
-          \${!hasWallet ? '<div class="wallet-error">⚠️ No wallet detected. Please install MetaMask or another Web3 wallet.</div>' : ''}
-          <button class="btn btn-primary" onclick="connectWallet()" \${!hasWallet ? 'disabled' : ''}>
-            \${hasWallet ? 'Connect with MetaMask' : 'Install MetaMask'}
+          
+          <div class="wallet-info-card">
+            <h4>💡 What is a Wallet?</h4>
+            <p>A cryptocurrency wallet is like a digital bank account that allows you to store, send, and receive cryptocurrencies like Ethereum (ETH). It also serves as your identity on the blockchain.</p>
+            
+            <h4>🔒 Why do I need one?</h4>
+            <ul>
+              <li><strong>Buy NFTs:</strong> You'll need ETH to purchase digital art on the marketplace</li>
+              <li><strong>Sell NFTs:</strong> Receive payments directly to your wallet when you sell</li>
+              <li><strong>Verify Ownership:</strong> Your wallet address proves ownership of your NFTs</li>
+              <li><strong>Security:</strong> Your private keys never leave your wallet</li>
+            </ul>
+            
+            <h4>🌐 Supported Networks</h4>
+            <p>Currently supporting <strong>Ethereum Mainnet</strong>. More networks coming soon!</p>
+          </div>
+          
+          \${!hasWallet ? '<div class="wallet-error">⚠️ No wallet detected in your browser.</div>' : ''}
+          <button class="btn btn-primary btn-large" onclick="\${hasWallet ? 'connectWallet()' : 'installMetaMask()'}">
+            \${hasWallet ? '🔗 Connect with MetaMask' : '⬇️ Install MetaMask'}
           </button>
-          <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--gray);">
-            Supported: MetaMask, Coinbase Wallet, WalletConnect
-          </p>
+          \${!hasWallet ? '<p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray);">Clicking install will open MetaMask download page</p>' : ''}
+          
+          <div class="wallet-supported">
+            <p style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--gray);">
+              <strong>Supported Wallets:</strong> MetaMask, Coinbase Wallet, Brave Wallet
+            </p>
+          </div>
         </div>\`;
     }
+    
+    // Install MetaMask - opens download page
+    window.installMetaMask = function() {
+      window.open('https://metamask.io/download/', '_blank');
+      showToast('Opening MetaMask download page...', 'success');
+    };
     
     function renderWalletConnected() {
       return \`
