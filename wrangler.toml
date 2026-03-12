@@ -7,8 +7,3 @@ bucket = "./public"
 
 [vars]
 ETHEREUM_RPC = "https://eth.llamarpc.com"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "nft_etheroi"
-database_id = "e7f58cc3-52a9-4536-8228-9dd975e4f7c1"
