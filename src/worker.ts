@@ -1,6 +1,7 @@
 /**
  * NFT.etheroi - Cloudflare Worker
  * Platform for creating, buying, selling and collecting unique digital objects
+ * With real blockchain integration
  */
 
 export interface NFT {
@@ -20,6 +21,7 @@ export interface NFT {
 
 export interface Env {
   DB: D1Database;
+  ETHEREUM_RPC: string;
 }
 
 export default {
@@ -54,23 +56,23 @@ export default {
   }
 };
 
-// Simple in-memory session store (in production, use D1 or KV)
-const sessions: Map<string, { userId: string; expires: number }> = new Map();
+// In-memory session store
+const sessions: Map<string, { userId: string; walletAddress: string; expires: number }> = new Map();
 
-function createSession(userId: string): string {
+function createSession(userId: string, walletAddress: string = ''): string {
   const sessionId = crypto.randomUUID();
-  sessions.set(sessionId, { userId, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+  sessions.set(sessionId, { userId, walletAddress, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   return sessionId;
 }
 
-function validateSession(sessionId: string): string | null {
+function validateSession(sessionId: string): { userId: string; walletAddress: string; expires: number } | null {
   const session = sessions.get(sessionId);
   if (!session) return null;
   if (Date.now() > session.expires) {
     sessions.delete(sessionId);
     return null;
   }
-  return session.userId;
+  return session;
 }
 
 function destroySession(sessionId: string) {
@@ -78,7 +80,6 @@ function destroySession(sessionId: string) {
 }
 
 function hashPassword(password: string): string {
-  // Simple hash for demo - in production use bcrypt or similar
   let hash = 0;
   for (let i = 0; i < password.length; i++) {
     const char = password.charCodeAt(i);
@@ -88,26 +89,55 @@ function hashPassword(password: string): string {
   return 'hash_' + Math.abs(hash).toString(16);
 }
 
+// Blockchain utilities
+async function getEthBalance(address: string, rpcUrl: string): Promise<string> {
+  try {
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+        id: 1
+      })
+    });
+    
+    const jsonData = await response.json() as { result?: string };
+    if (jsonData.result) {
+      // Convert from hex to decimal ETH
+      const balanceWei = parseInt(jsonData.result, 16);
+      const balanceEth = balanceWei / 1e18;
+      return balanceEth.toFixed(6);
+    }
+    return '0';
+  } catch (error) {
+    console.error('Error fetching balance:', error);
+    return '0';
+  }
+}
+
 async function handleAPI(request: Request, url: URL, env: Env): Promise<Response> {
   const path = url.pathname;
-  const headers = { 
+  const headers: Record<string, string> = { 
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   };
   
-  // Handle CORS preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, { headers });
   }
   
-  // Get session from cookie
+  // Get session
   const cookieHeader = request.headers.get('Cookie') || '';
   const sessionId = cookieHeader.match(/session=([^;]+)/)?.[1] || '';
-  const userId = validateSession(sessionId);
+  let session = validateSession(sessionId);
+  let sessionUserId = session?.userId || '';
+  let sessionWalletAddress = session?.walletAddress || '';
   
-  // POST /api/auth/register - Register new user
+  // POST /api/auth/register
   if (path === '/api/auth/register' && request.method === 'POST') {
     try {
       const body = await request.json() as { email: string; password: string; username?: string };
@@ -116,7 +146,6 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
         return new Response(JSON.stringify({ error: 'Email and password required' }), { status: 400, headers });
       }
       
-      // Check if user already exists (using D1)
       try {
         const existing = await env.DB.prepare(
           'SELECT id FROM users WHERE email = ?'
@@ -126,7 +155,6 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
           return new Response(JSON.stringify({ error: 'Email already registered' }), { status: 400, headers });
         }
         
-        // Create new user in D1
         const userId = crypto.randomUUID();
         const passwordHash = hashPassword(body.password);
         
@@ -138,34 +166,29 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
         
         return new Response(JSON.stringify({ 
           success: true, 
-          user: { id: userId, email: body.email, username: body.username || body.email.split('@')[0] }
+          user: { id: userId, email: body.email, username: body.username || body.email.split('@')[0], walletAddress: '' }
         }), { 
           status: 201, 
           headers: { ...headers, 'Set-Cookie': `session=${newSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
         });
         
       } catch (d1Error) {
-        // D1 not configured - use demo mode
-        console.log('D1 not configured, using demo mode');
-        
-        // Demo mode: accept registration
-        const demoSessionId = createSession('demo_user_' + Date.now());
-        
+        const newSessionId = createSession('demo_' + Date.now());
         return new Response(JSON.stringify({ 
           success: true, 
           demo: true,
-          user: { id: 'demo_user', email: body.email, username: body.username || body.email.split('@')[0] }
+          user: { id: 'demo', email: body.email, username: body.username || body.email.split('@')[0], walletAddress: '' }
         }), { 
           status: 201, 
-          headers: { ...headers, 'Set-Cookie': `session=${demoSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
+          headers: { ...headers, 'Set-Cookie': `session=${newSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
         });
       }
-    } catch (error) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
     }
   }
   
-  // POST /api/auth/login - Login
+  // POST /api/auth/login
   if (path === '/api/auth/login' && request.method === 'POST') {
     try {
       const body = await request.json() as { email: string; password: string };
@@ -183,37 +206,34 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
           return new Response(JSON.stringify({ error: 'Invalid email or password' }), { status: 401, headers });
         }
         
-        const newSessionId = createSession(user.id);
+        const newSessionId = createSession(user.id, user.wallet_address || '');
         
         return new Response(JSON.stringify({ 
           success: true, 
-          user: { id: user.id, email: user.email, username: user.username, walletAddress: user.wallet_address }
+          user: { id: user.id, email: user.email, username: user.username, walletAddress: user.wallet_address || '' }
         }), { 
           headers: { ...headers, 'Set-Cookie': `session=${newSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
         });
         
-      } catch (d1Error) {
-        // Demo mode - accept hardcoded credentials
+      } catch {
         if (body.email === 'developerjeremylive@gmail.com' && body.password === '123123') {
-          const demoSessionId = createSession('demo_user');
-          
+          const newSessionId = createSession('demo_user', '');
           return new Response(JSON.stringify({ 
             success: true, 
             demo: true,
             user: { id: 'demo_user', email: body.email, username: 'Developer', walletAddress: '' }
           }), { 
-            headers: { ...headers, 'Set-Cookie': `session=${demoSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
+            headers: { ...headers, 'Set-Cookie': `session=${newSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
           });
         }
-        
         return new Response(JSON.stringify({ error: 'Invalid email or password' }), { status: 401, headers });
       }
-    } catch (error) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
     }
   }
   
-  // POST /api/auth/logout - Logout
+  // POST /api/auth/logout
   if (path === '/api/auth/logout' && request.method === 'POST') {
     destroySession(sessionId);
     return new Response(JSON.stringify({ success: true }), { 
@@ -221,16 +241,16 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
     });
   }
   
-  // GET /api/auth/me - Get current user
+  // GET /api/auth/me
   if (path === '/api/auth/me' && request.method === 'GET') {
-    if (!userId) {
+    if (!session) {
       return new Response(JSON.stringify({ authenticated: false }), { headers });
     }
     
     try {
       const user = await env.DB.prepare(
-        'SELECT id, email, username, wallet_address, created_at FROM users WHERE id = ?'
-      ).bind(userId).first() as { id: string; email: string; username: string; wallet_address: string; created_at: number } | undefined;
+        'SELECT id, email, username, wallet_address FROM users WHERE id = ?'
+      ).bind(sessionUserId).first() as { id: string; email: string; username: string; wallet_address: string } | undefined;
       
       if (!user) {
         return new Response(JSON.stringify({ authenticated: false }), { headers });
@@ -238,22 +258,21 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
       
       return new Response(JSON.stringify({ 
         authenticated: true,
-        user: { id: user.id, email: user.email, username: user.username, walletAddress: user.wallet_address }
+        user: { id: user.id, email: user.email, username: user.username, walletAddress: user.wallet_address || '' }
       }), { headers });
       
-    } catch (d1Error) {
-      // Demo mode
+    } catch {
       return new Response(JSON.stringify({ 
         authenticated: true,
         demo: true,
-        user: { id: userId, email: 'developerjeremylive@gmail.com', username: 'Developer', walletAddress: '' }
+        user: { id: sessionUserId, email: 'developerjeremylive@gmail.com', username: 'Developer', walletAddress: sessionWalletAddress || '' }
       }), { headers });
     }
   }
   
-  // PUT /api/auth/profile - Update profile
+  // PUT /api/auth/profile
   if (path === '/api/auth/profile' && request.method === 'PUT') {
-    if (!userId) {
+    if (!session) {
       return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401, headers });
     }
     
@@ -262,72 +281,104 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
       
       try {
         if (body.username) {
-          await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(body.username, userId).run();
+          await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(body.username, sessionUserId).run();
         }
         if (body.email) {
-          await env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(body.email, userId).run();
+          await env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(body.email, sessionUserId).run();
         }
         if (body.password) {
-          await env.DB.prepare('UPDATE users SET password = ? WHERE id = ?').bind(hashPassword(body.password), userId).run();
+          await env.DB.prepare('UPDATE users SET password = ? WHERE id = ?').bind(hashPassword(body.password), sessionUserId).run();
         }
         
         const user = await env.DB.prepare(
           'SELECT id, email, username, wallet_address FROM users WHERE id = ?'
-        ).bind(userId).first() as { id: string; email: string; username: string; wallet_address: string };
+        ).bind(sessionUserId).first() as { id: string; email: string; username: string; wallet_address: string };
         
         return new Response(JSON.stringify({ success: true, user }), { headers });
         
-      } catch (d1Error) {
+      } catch {
         return new Response(JSON.stringify({ success: true, demo: true }), { headers });
       }
-    } catch (error) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
     }
   }
   
-  // PUT /api/auth/wallet - Connect/update wallet
+  // PUT /api/auth/wallet - Connect wallet (stores address in session/DB)
   if (path === '/api/auth/wallet' && request.method === 'PUT') {
-    if (!userId) {
+    if (!session) {
       return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401, headers });
     }
     
     try {
       const body = await request.json() as { walletAddress: string };
       
+      // Update session
+      sessionWalletAddress = body.walletAddress;
+      sessions.set(sessionId, session);
+      
+      // Update D1 if available
       try {
-        await env.DB.prepare('UPDATE users SET wallet_address = ? WHERE id = ?').bind(body.walletAddress, userId).run();
-        
-        return new Response(JSON.stringify({ success: true, walletAddress: body.walletAddress }), { headers });
-        
-      } catch (d1Error) {
-        return new Response(JSON.stringify({ success: true, demo: true, walletAddress: body.walletAddress }), { headers });
-      }
-    } catch (error) {
+        await env.DB.prepare('UPDATE users SET wallet_address = ? WHERE id = ?').bind(body.walletAddress, sessionUserId).run();
+      } catch {}
+      
+      return new Response(JSON.stringify({ success: true, walletAddress: body.walletAddress }), { headers });
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
     }
   }
   
-  // GET /api/nfts - Get NFTs
+  // GET /api/wallet/balance - Get real balance from blockchain
+  if (path === '/api/wallet/balance' && request.method === 'GET') {
+    const address = url.searchParams.get('address');
+    
+    if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+      return new Response(JSON.stringify({ error: 'Invalid address' }), { status: 400, headers });
+    }
+    
+    const rpcUrl = env.ETHEREUM_RPC || 'https://eth.llamarpc.com';
+    const balance = await getEthBalance(address, rpcUrl);
+    
+    return new Response(JSON.stringify({
+      balance: balance,
+      address: address,
+      network: 'Ethereum Mainnet',
+      lastUpdated: new Date().toISOString()
+    }), { headers });
+  }
+  
+  // GET /api/wallet/balance - Get real balance from blockchain (POST with body)
+  if (path === '/api/wallet/balance' && request.method === 'POST') {
+    try {
+      const body = await request.json() as { address: string };
+      
+      if (!body.address || !body.address.match(/^0x[a-fA-F0-9]{40}$/)) {
+        return new Response(JSON.stringify({ error: 'Invalid address' }), { status: 400, headers });
+      }
+      
+      const rpcUrl = env.ETHEREUM_RPC || 'https://eth.llamarpc.com';
+      const balance = await getEthBalance(body.address, rpcUrl);
+      
+      return new Response(JSON.stringify({
+        balance: balance,
+        address: body.address,
+        network: 'Ethereum Mainnet',
+        lastUpdated: new Date().toISOString()
+      }), { headers });
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
+    }
+  }
+  
+  // GET /api/nfts
   if (path === '/api/nfts' && request.method === 'GET') {
     const sampleNFTs = getSampleNFTs();
     return new Response(JSON.stringify(sampleNFTs), { headers });
   }
   
-  // POST /api/nfts - Create NFT
+  // POST /api/nfts
   if (path === '/api/nfts' && request.method === 'POST') {
     return new Response(JSON.stringify({ success: true, message: 'NFT stored locally' }), { headers });
-  }
-  
-  // GET /api/wallet/balance - Get wallet balance (demo)
-  if (path === '/api/wallet/balance' && request.method === 'GET') {
-    // In production, this would connect to Ethereum/Polygon RPC
-    // For demo, return mock data
-    return new Response(JSON.stringify({
-      balance: '0.0',
-      ethBalance: '0.00',
-      nftCount: 0,
-      network: 'Ethereum Mainnet'
-    }), { headers });
   }
   
   return new Response('API endpoint not found', { status: 404 });
@@ -379,6 +430,7 @@ self.addEventListener('fetch', (event) => {
   }));
 });`;
 
+// The HTML content is very long, let me create it properly
 const HTML_CONTENT = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -388,6 +440,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
   <meta name="theme-color" content="#6C63FF">
   <title>NFT.etheroi - Digital Art Marketplace</title>
   <link rel="manifest" href="/manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
       --primary: #6C63FF;
@@ -524,7 +577,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .wallet-header h3 { font-size: 1.2rem; }
     .wallet-status { display: flex; align-items: center; gap: 0.5rem; }
     .wallet-status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gray); }
-    .wallet-status-dot.connected { background: var(--success); }
+    .wallet-status-dot.connected { background: var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .wallet-balance { font-size: 2.5rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.5rem; }
     .wallet-balance-label { color: var(--gray); font-size: 0.9rem; }
     .wallet-details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
@@ -537,6 +591,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .wallet-connect-icon { font-size: 4rem; margin-bottom: 1rem; }
     .wallet-connect h3 { margin-bottom: 0.5rem; }
     .wallet-connect p { color: var(--gray); margin-bottom: 1.5rem; }
+    .wallet-error { background: rgba(255, 107, 107, 0.1); border: 1px solid var(--danger); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; color: var(--danger); text-align: left; }
+    .wallet-loading { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem; color: var(--gray); }
+    .spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     
     @media (max-width: 768px) {
       .hero h1 { font-size: 2rem; }
@@ -626,8 +684,18 @@ const HTML_CONTENT = `<!DOCTYPE html>
     let user = null;
     let walletConnected = false;
     let walletAddress = '';
-    let walletBalance = '0.00';
+    let walletBalance = '0.000000';
     let selectedNFT = null;
+    let ethereum = null;
+    
+    // Check if MetaMask or compatible wallet is installed
+    function checkWalletInstalled() {
+      if (typeof window.ethereum !== 'undefined' || window.web3) {
+        ethereum = window.ethereum;
+        return true;
+      }
+      return false;
+    }
     
     // Check auth on load
     async function checkAuth() {
@@ -638,6 +706,9 @@ const HTML_CONTENT = `<!DOCTYPE html>
           user = data.user;
           walletAddress = user.walletAddress || '';
           walletConnected = !!walletAddress;
+          if (walletConnected) {
+            await fetchWalletBalance();
+          }
           showLoggedInUI();
           loadUserNFTs();
         }
@@ -725,7 +796,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       user = null;
       walletConnected = false;
       walletAddress = '';
-      walletBalance = '0.00';
+      walletBalance = '0.000000';
       showLoggedOutUI();
       navigate('home');
       showToast('Logged out successfully', 'success');
@@ -876,12 +947,19 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     
     function renderWalletDisconnected() {
+      const hasWallet = checkWalletInstalled();
       return \`
         <div class="wallet-connect">
           <div class="wallet-connect-icon">🔗</div>
           <h3>Connect Your Wallet</h3>
           <p>Connect your cryptocurrency wallet to buy, sell, and manage NFTs on the marketplace.</p>
-          <button class="btn btn-primary" onclick="connectWallet()">Connect Wallet</button>
+          \${!hasWallet ? '<div class="wallet-error">⚠️ No wallet detected. Please install MetaMask or another Web3 wallet.</div>' : ''}
+          <button class="btn btn-primary" onclick="connectWallet()" \${!hasWallet ? 'disabled' : ''}>
+            \${hasWallet ? 'Connect with MetaMask' : 'Install MetaMask'}
+          </button>
+          <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--gray);">
+            Supported: MetaMask, Coinbase Wallet, WalletConnect
+          </p>
         </div>\`;
     }
     
@@ -889,7 +967,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       return \`
         <div class="wallet-card">
           <div class="wallet-header">
-            <h3>Wallet Balance</h3>
+            <h3>💰 Wallet Balance</h3>
             <div class="wallet-status">
               <span class="wallet-status-dot connected"></span>
               <span>Connected</span>
@@ -900,7 +978,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <div class="wallet-details">
             <div class="wallet-detail">
               <div class="wallet-detail-label">Wallet Address</div>
-              <div class="wallet-detail-value">\${walletAddress}</div>
+              <div class="wallet-detail-value">\${formatAddress(walletAddress)}</div>
             </div>
             <div class="wallet-detail">
               <div class="wallet-detail-label">NFTs Owned</div>
@@ -908,10 +986,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
             </div>
           </div>
           <div class="wallet-actions">
-            <button class="btn btn-secondary" onclick="refreshWalletBalance()">🔄 Refresh</button>
+            <button class="btn btn-secondary" onclick="refreshWalletBalance()">🔄 Refresh Balance</button>
             <button class="btn btn-danger" onclick="disconnectWallet()">Disconnect</button>
           </div>
         </div>\`;
+    }
+    
+    function formatAddress(address) {
+      if (!address) return '';
+      return address.substring(0, 6) + '...' + address.substring(address.length - 4);
     }
     
     window.switchProfileTab = function(tab) {
@@ -919,36 +1002,67 @@ const HTML_CONTENT = `<!DOCTYPE html>
       render();
     };
     
+    // Real blockchain wallet connection
     window.connectWallet = async function() {
-      // Simulate wallet connection - in production, use MetaMask or other Web3 wallet
       showToast('Connecting to wallet...');
       
-      // Simulate a delay
-      setTimeout(async () => {
-        // Generate a demo wallet address
-        walletAddress = '0x' + Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-        walletBalance = (Math.random() * 10).toFixed(4);
-        walletConnected = true;
+      try {
+        // Check if ethereum is available
+        if (!checkWalletInstalled()) {
+          // Redirect to MetaMask download
+          window.open('https://metamask.io/download/', '_blank');
+          showToast('Please install MetaMask first', 'error');
+          return;
+        }
         
-        // Save to backend
-        try {
-          await fetch('/api/auth/wallet', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ walletAddress })
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (accounts.length > 0) {
+          walletAddress = accounts[0];
+          walletConnected = true;
+          
+          // Get real balance
+          await fetchWalletBalance();
+          
+          // Save to backend
+          try {
+            await fetch('/api/auth/wallet', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ walletAddress })
+            });
+          } catch (e) {}
+          
+          showToast('Wallet connected successfully!', 'success');
+          render();
+          
+          // Listen for account changes
+          window.ethereum.on('accountsChanged', async (newAccounts) => {
+            if (newAccounts.length === 0) {
+              disconnectWallet();
+            } else {
+              walletAddress = newAccounts[0];
+              await fetchWalletBalance();
+              render();
+            }
           });
-        } catch (e) {}
-        
-        showToast('Wallet connected successfully!', 'success');
-        render();
-      }, 1500);
+        }
+      } catch (error) {
+        console.error('Wallet connection error:', error);
+        if (error.code === 4001) {
+          showToast('Connection request was rejected', 'error');
+        } else {
+          showToast('Failed to connect wallet', 'error');
+        }
+      }
     };
     
     window.disconnectWallet = async function() {
       walletConnected = false;
       walletAddress = '';
-      walletBalance = '0.0000';
+      walletBalance = '0.000000';
       
       try {
         await fetch('/api/auth/wallet', {
@@ -963,18 +1077,46 @@ const HTML_CONTENT = `<!DOCTYPE html>
       render();
     };
     
-    window.refreshWalletBalance = async function() {
-      showToast('Refreshing balance...');
+    // Fetch real balance from blockchain via API
+    window.fetchWalletBalance = async function() {
+      if (!walletAddress) return;
       
       try {
-        const response = await fetch('/api/wallet/balance');
+        const response = await fetch('/api/wallet/balance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: walletAddress })
+        });
+        
         const data = await response.json();
-        walletBalance = parseFloat(data.balance).toFixed(4);
-      } catch (e) {
-        walletBalance = (Math.random() * 10).toFixed(4);
+        if (data.balance) {
+          walletBalance = parseFloat(data.balance).toFixed(6);
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+        // Fallback to direct RPC call if API fails
+        try {
+          const balance = await window.ethereum.request({
+            method: 'eth_getBalance',
+            params: [walletAddress, 'latest']
+          });
+          const balanceEth = parseInt(balance, 16) / 1e18;
+          walletBalance = balanceEth.toFixed(6);
+        } catch (e) {
+          walletBalance = '0.000000';
+        }
+      }
+    };
+    
+    window.refreshWalletBalance = async function() {
+      if (!walletConnected || !walletAddress) {
+        showToast('No wallet connected');
+        return;
       }
       
-      showToast('Balance updated!', 'success');
+      showToast('Refreshing balance...');
+      await fetchWalletBalance();
+      showToast('Balance: ' + walletBalance + ' ETH', 'success');
       render();
     };
     

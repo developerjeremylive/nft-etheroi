@@ -8,12 +8,21 @@
     "dev": "npx wrangler dev",
     "deploy": "npx wrangler deploy"
   },
-  "keywords": ["nft", "blockchain", "etheroi", "cloudflare", "worker"],
+  "keywords": [
+    "nft",
+    "blockchain",
+    "etheroi",
+    "cloudflare",
+    "worker"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "typescript": "^5.7.2",
     "wrangler": "^3.95.0"
+  },
+  "dependencies": {
+    "ethers": "^5.7.2"
   }
 }
