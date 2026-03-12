@@ -162,6 +162,8 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
           'INSERT INTO users (id, email, password, username, wallet_address, created_at) VALUES (?, ?, ?, ?, ?, ?)'
         ).bind(userId, body.email, passwordHash, body.username || body.email.split('@')[0], '', Date.now()).run();
         
+        console.log('User registered in D1:', userId, body.email);
+        
         const newSessionId = createSession(userId);
         
         return new Response(JSON.stringify({ 
@@ -172,7 +174,8 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
           headers: { ...headers, 'Set-Cookie': `session=${newSessionId}; Path=/; HttpOnly; Max-Age=${7 * 24 * 60 * 60}` }
         });
         
-      } catch (d1Error) {
+      } catch (d1Error: any) {
+        console.error('D1 Error:', d1Error?.message || d1Error);
         const newSessionId = createSession('demo_' + Date.now());
         return new Response(JSON.stringify({ 
           success: true, 
