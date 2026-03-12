@@ -1,0 +1,14 @@
+{
+  "name": "nft-etheroi",
+  "version": "1.0.0",
+  "description": "NFT.etheroi - Platform for creating, buying, selling and collecting unique digital objects",
+  "main": "dist/worker.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": ["nft", "blockchain", "etheroi", "cloudflare", "worker"],
+  "author": "",
+  "license": "MIT"
+}
