@@ -652,6 +652,55 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     .login-card p { color: var(--gray); margin-bottom: 2rem; }
     
+    .login-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .login-input-group {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    
+    .login-input-group input {
+      width: 100%;
+      padding: 1rem 1rem 1rem 3rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--light);
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    
+    .login-input-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+    }
+    
+    .login-input-group::before {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray);
+      font-size: 1.2rem;
+    }
+    
+    .login-input-email::before { content: '✉️'; }
+    .login-input-password::before { content: '🔒'; }
+    
+    .login-forgot {
+      display: block;
+      margin-top: 1rem;
+      color: var(--primary);
+      font-size: 0.85rem;
+      text-decoration: none;
+    }
+    
+    .login-forgot:hover { text-decoration: underline; }
+    
     .login-error {
       color: var(--danger);
       font-size: 0.9rem;
@@ -674,21 +723,19 @@ const HTML_CONTENT = `<!DOCTYPE html>
   <!-- Login Modal -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
-      <h2>NFT.etheroi</h2>
-      <p>Sign in to access all features</p>
+      <div class="login-icon">🔐</div>
+      <h2>Welcome Back</h2>
+      <p>Sign in to continue to NFT.etheroi</p>
       <div class="login-error" id="loginError">Invalid email or password</div>
       <form id="loginForm">
-        <div class="form-group">
-          <input type="email" name="email" placeholder="Email" required>
+        <div class="login-input-group login-input-email">
+          <input type="email" name="email" placeholder="Email address" required>
         </div>
-        <div class="form-group">
+        <div class="login-input-group login-input-password">
           <input type="password" name="password" placeholder="Password" required>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Sign In</button>
       </form>
-      <p style="margin-top: 1.5rem; font-size: 0.8rem;">
-        Demo: developerjeremylive@gmail.com / 123123
-      </p>
     </div>
   </div>
   
@@ -751,6 +798,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       password: '123123'
     };
     
+    let currentFilter = 'all';
     let currentPage = 'home';
     let nfts = [];
     let userNFTs = [];
@@ -976,10 +1024,24 @@ const HTML_CONTENT = `<!DOCTYPE html>
       const featuredGrid = document.getElementById('featuredGrid');
       const marketplaceGrid = document.getElementById('marketplaceGrid');
       
-      const nftCards = nfts.map(nft => createNFTCard(nft)).join('');
+      // Filter NFTs based on current filter
+      let filteredNFTs = nfts;
+      if (currentFilter === 'sale') {
+        filteredNFTs = nfts.filter(nft => nft.forSale && !nft.auction);
+      } else if (currentFilter === 'auction') {
+        filteredNFTs = nfts.filter(nft => nft.auction);
+      }
       
-      if (featuredGrid) featuredGrid.innerHTML = nftCards;
-      if (marketplaceGrid) marketplaceGrid.innerHTML = nftCards;
+      const nftCards = filteredNFTs.map(nft => createNFTCard(nft)).join('');
+      
+      if (featuredGrid) featuredGrid.innerHTML = nfts.slice(0, 4).map(nft => createNFTCard(nft)).join('');
+      if (marketplaceGrid) {
+        if (filteredNFTs.length === 0) {
+          marketplaceGrid.innerHTML = '<p style="color: var(--gray); grid-column: 1/-1; text-align: center; padding: 2rem;">No NFTs found for this filter</p>';
+        } else {
+          marketplaceGrid.innerHTML = nftCards;
+        }
+      }
     }
     
     function renderUserNFTs() {
@@ -1107,6 +1169,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
       if (e.target.classList.contains('filter-btn')) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
+        
+        // Update filter and re-render NFTs
+        currentFilter = e.target.dataset.filter;
+        renderNFTs();
       }
     });
     
