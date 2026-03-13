@@ -1135,6 +1135,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
       document.querySelectorAll('.protected').forEach(el => el.classList.add('hidden'));
     }
     
+    function isLoggedIn() {
+      return user !== null;
+    }
+    
     // Auth handlers
     document.querySelectorAll('.auth-tab').forEach(tab => {
       tab.addEventListener('click', () => {
