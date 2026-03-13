@@ -1361,67 +1361,141 @@ const HTML_CONTENT = `<!DOCTYPE html>
       padding: 8rem 2rem 6rem;
       overflow: hidden;
     }
-    .hero-bg {
+    .hero-particles {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(108, 99, 255, 0.3) 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 50%, rgba(139, 92, 246, 0.2) 0%, transparent 40%),
-                  radial-gradient(ellipse at 20% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 40%);
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, rgba(108, 99, 255, 0.4), transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(139, 92, 246, 0.3), transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 130px 80px, rgba(108, 99, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 160px 120px, rgba(255, 255, 255, 0.2), transparent);
+      background-size: 200px 200px;
+      animation: particleFloat 20s linear infinite;
       z-index: 0;
     }
+    @keyframes particleFloat {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-200px); }
+    }
+    .hero-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(108, 99, 255, 0.3) 0%, rgba(139, 92, 246, 0.15) 30%, transparent 70%);
+      animation: glowPulse 4s ease-in-out infinite;
+      z-index: 0;
+    }
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+    }
     .hero-content {
-      max-width: 900px;
+      max-width: 800px;
       text-align: center;
       position: relative;
       z-index: 1;
     }
     .hero-badge {
-      display: inline-block;
-      padding: 0.5rem 1.5rem;
-      background: rgba(108, 99, 255, 0.15);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.5rem;
+      background: rgba(108, 99, 255, 0.1);
       border: 1px solid rgba(108, 99, 255, 0.3);
       border-radius: 50px;
-      color: var(--primary);
-      font-size: 0.9rem;
-      font-weight: 600;
+      color: #a5b4fc;
+      font-size: 0.85rem;
+      font-weight: 500;
       margin-bottom: 2rem;
+      letter-spacing: 0.5px;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
     }
     .landing-hero h1 {
-      font-size: 4rem;
-      font-weight: 800;
-      line-height: 1.1;
+      font-size: 5rem;
+      font-weight: 900;
+      line-height: 1.05;
       margin-bottom: 1.5rem;
       color: white;
+      letter-spacing: -2px;
+      text-shadow: 0 0 60px rgba(108, 99, 255, 0.3);
     }
     .gradient-text {
-      background: linear-gradient(135deg, var(--primary), var(--secondary), #f472b6);
+      background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      animation: gradientShift 5s ease infinite;
+      background-size: 200% 200%;
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
     .hero-subtitle {
-      font-size: 1.25rem;
-      color: var(--gray);
-      max-width: 600px;
-      margin: 0 auto 2.5rem;
+      font-size: 1.35rem;
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 550px;
+      margin: 0 auto 3rem;
       line-height: 1.7;
+      font-weight: 400;
     }
     .hero-cta {
       display: flex;
-      gap: 1rem;
       justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 3rem;
+      margin-bottom: 4rem;
+    }
+    .btn-glow {
+      position: relative;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      border: none;
+      box-shadow: 0 0 30px rgba(108, 99, 255, 0.5), 0 10px 20px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    .btn-glow::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+    .btn-glow:hover::before {
+      left: 100%;
+    }
+    .btn-icon {
+      margin-right: 0.5rem;
     }
     .btn-large {
-      padding: 1rem 2.5rem;
-      font-size: 1.1rem;
+      padding: 1.2rem 3rem;
+      font-size: 1.15rem;
     }
     .hero-stats {
       display: flex;
       justify-content: center;
-      gap: 4rem;
+      align-items: center;
+      gap: 2rem;
       flex-wrap: wrap;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.5), transparent);
     }
     .stat-item {
       text-align: center;
@@ -1438,8 +1512,18 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     
     .landing-features {
-      padding: 6rem 2rem;
-      background: rgba(15, 15, 26, 0.5);
+      padding: 8rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.05));
+      position: relative;
+    }
+    .landing-features::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.5), transparent);
     }
     .landing-features .section-title {
       text-align: center;
@@ -1448,39 +1532,67 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
       max-width: 1200px;
       margin: 0 auto;
     }
     .feature-card-large {
-      background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(255,255,255, 0.03), rgba(255,255,255, 0.01));
+      border: 1px solid rgba(255,255,255, 0.06);
+      border-radius: 24px;
       padding: 2.5rem;
-      transition: all 0.4s;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card-large::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.3), transparent);
     }
     .feature-card-large:hover {
-      transform: translateY(-8px);
-      border-color: rgba(108, 99, 255, 0.5);
-      box-shadow: 0 20px 40px rgba(108, 99, 255, 0.15);
+      transform: translateY(-10px);
+      border-color: rgba(108, 99, 255, 0.4);
+      box-shadow: 0 25px 50px rgba(108, 99, 255, 0.2), 0 0 0 1px rgba(108, 99, 255, 0.1);
     }
     .feature-icon-large {
       font-size: 3rem;
       margin-bottom: 1.5rem;
+      display: inline-block;
+      padding: 1rem;
+      background: rgba(108, 99, 255, 0.1);
+      border-radius: 16px;
+      border: 1px solid rgba(108, 99, 255, 0.2);
     }
     .feature-card-large h3 {
-      font-size: 1.4rem;
-      margin-bottom: 1rem;
+      font-size: 1.35rem;
+      margin-bottom: 0.75rem;
       color: white;
+      font-weight: 600;
     }
     .feature-card-large p {
-      color: var(--gray);
+      color: rgba(255, 255, 255, 0.6);
       line-height: 1.7;
+      font-size: 0.95rem;
     }
     
     .landing-how {
-      padding: 6rem 2rem;
+      padding: 8rem 2rem;
+      position: relative;
+    }
+    .landing-how::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.3), transparent);
     }
     .landing-how .section-title {
       text-align: center;
@@ -1501,49 +1613,82 @@ const HTML_CONTENT = `<!DOCTYPE html>
       min-width: 200px;
       text-align: center;
       padding: 2rem;
+      position: relative;
+    }
+    .step-item::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.2), transparent);
+      z-index: 0;
     }
     .step-number {
-      font-size: 3rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      font-size: 1.8rem;
       font-weight: 800;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 1rem;
+      background: linear-gradient(135deg, rgba(108, 99, 255, 0.2), rgba(139, 92, 246, 0.2));
+      border: 1px solid rgba(108, 99, 255, 0.3);
+      border-radius: 50%;
+      color: white;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
     }
     .step-item h3 {
       color: white;
       font-size: 1.2rem;
       margin-bottom: 0.5rem;
+      font-weight: 600;
     }
     .step-item p {
-      color: var(--gray);
+      color: rgba(255, 255, 255, 0.6);
       font-size: 0.9rem;
     }
     .step-connector {
-      width: 60px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      margin-top: 60px;
+      display: none;
     }
     
     .landing-cta {
-      padding: 6rem 2rem;
-      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.1));
+      padding: 8rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.08));
+      position: relative;
+      text-align: center;
+    }
+    .landing-cta::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(108, 99, 255, 0.15) 0%, transparent 70%);
+      pointer-events: none;
     }
     .cta-content {
       max-width: 600px;
       margin: 0 auto;
       text-align: center;
+      position: relative;
+      z-index: 1;
     }
     .cta-content h2 {
-      font-size: 2.5rem;
+      font-size: 3rem;
       color: white;
       margin-bottom: 1rem;
+      font-weight: 700;
     }
     .cta-content p {
-      color: var(--gray);
-      font-size: 1.1rem;
-      margin-bottom: 2rem;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.15rem;
+      margin-bottom: 2.5rem;
     }
     
     .landing-footer {
@@ -1933,18 +2078,25 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <div class="landing-page">
           <!-- Hero Section -->
           <section class="landing-hero">
-            <div class="hero-bg"></div>
+            <div class="hero-particles"></div>
+            <div class="hero-glow"></div>
             <div class="hero-content">
-              <div class="hero-badge">🚀 Built on Cloudflare Workers</div>
-              <h1>Discover, Collect & Trade<br><span class="gradient-text">Unique Digital Art</span></h1>
-              <p class="hero-subtitle">NFT.etheroi is the next-generation NFT marketplace where creators and collectors converge. Secure, fast, and powered by blockchain technology.</p>
+              <div class="hero-badge">
+                <span class="pulse-dot"></span>
+                Powered by Cloudflare Workers
+              </div>
+              <h1>The Future of <br><span class="gradient-text">Digital Art</span></h1>
+              <p class="hero-subtitle">Create, collect, and trade unique digital artworks on the next-generation NFT marketplace. Secured by blockchain, powered by AI.</p>
               <div class="hero-cta">
-                <button class="btn btn-primary btn-large" onclick="openAuthModal()">Get Started →</button>
-                <button class="btn btn-secondary btn-large" onclick="navigate('auctions')">Explore Auctions</button>
+                <button class="btn btn-primary btn-large btn-glow" onclick="openAuthModal()">
+                  <span class="btn-icon">✨</span> Get Started
+                </button>
               </div>
               <div class="hero-stats">
                 <div class="stat-item"><span class="stat-number">10K+</span><span class="stat-label">Digital Artworks</span></div>
+                <div class="stat-divider"></div>
                 <div class="stat-item"><span class="stat-number">5K+</span><span class="stat-label">Active Collectors</span></div>
+                <div class="stat-divider"></div>
                 <div class="stat-item"><span class="stat-number">50+</span><span class="stat-label">AI Artists</span></div>
               </div>
             </div>
