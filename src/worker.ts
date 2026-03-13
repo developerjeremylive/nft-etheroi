@@ -1212,9 +1212,49 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .toast.error { background: var(--danger); }
     .toast.success { background: var(--success); }
     
+    /* Landing Page Modal */
+    .landing-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 15, 26, 0.98);
+      z-index: 600;
+      overflow-y: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .landing-overlay.hidden { display: none; }
+    .landing-close {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 601;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .landing-close:hover {
+      background: var(--primary);
+      transform: rotate(90deg);
+    }
+    .landing-modal-content {
+      max-width: 100%;
+      width: 100%;
+    }
+    
     /* Auth Modal */
-    .auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: flex; justify-content: center; align-items: center; z-index: 500; }
-    .auth-overlay.hidden { display: none; }
     .auth-card { background: var(--dark); border-radius: 24px; padding: 3rem; width: 100%; max-width: 420px; text-align: center; animation: modalIn 0.3s ease; }
     .auth-tabs { display: flex; margin-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     .auth-tab { flex: 1; padding: 1rem; background: none; border: none; color: var(--gray); font-size: 1rem; cursor: pointer; transition: all 0.3s; }
@@ -1576,6 +1616,12 @@ const HTML_CONTENT = `<!DOCTYPE html>
 <body>
   <div class="bg-animation"></div>
   
+  <!-- Landing Page Modal -->
+  <div class="landing-overlay" id="landingOverlay">
+    <button class="landing-close" onclick="closeLandingPage()">✕</button>
+    <div class="landing-modal-content" id="landingContent"></div>
+  </div>
+  
   <!-- Auth Modal -->
   <div class="auth-overlay" id="authOverlay">
     <div class="auth-card">
@@ -1835,11 +1881,22 @@ const HTML_CONTENT = `<!DOCTYPE html>
     // Render functions
     function render() {
       const app = document.getElementById('app');
+      const landingOverlay = document.getElementById('landingOverlay');
       
-      // Show landing page for non-authenticated users on home
+      // Show landing page as modal for non-authenticated users on home
       if (currentPage === 'home' && !user) {
-        app.innerHTML = renderLandingPage();
+        app.innerHTML = renderEmptyHome();
+        // Show landing modal
+        if (landingOverlay) {
+          document.getElementById('landingContent').innerHTML = renderLandingPage();
+          landingOverlay.classList.remove('hidden');
+        }
         return;
+      }
+      
+      // Hide landing modal when authenticated
+      if (landingOverlay) {
+        landingOverlay.classList.add('hidden');
       }
       
       switch(currentPage) {
@@ -1978,8 +2035,28 @@ const HTML_CONTENT = `<!DOCTYPE html>
       \`;
     }
     
+    // Empty home for non-authenticated users (behind landing modal)
+    function renderEmptyHome() {
+      return \`<div style="min-height: 100vh;"></div>\`;
+    }
+    
+    // Close landing page and show auth modal
+    window.closeLandingPage = function() {
+      const landingOverlay = document.getElementById('landingOverlay');
+      if (landingOverlay) {
+        landingOverlay.classList.add('hidden');
+      }
+      // Show auth modal
+      const authOverlay = document.getElementById('authOverlay');
+      if (authOverlay) authOverlay.classList.remove('hidden');
+    };
+    
     // Open auth modal from landing page
     window.openAuthModal = function() {
+      // Close landing modal first
+      const landingOverlay = document.getElementById('landingOverlay');
+      if (landingOverlay) landingOverlay.classList.add('hidden');
+      // Show auth modal
       const overlay = document.getElementById('authOverlay');
       if (overlay) overlay.classList.remove('hidden');
     };
