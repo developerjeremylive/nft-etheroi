@@ -2112,17 +2112,27 @@ const HTML_CONTENT = `<!DOCTYPE html>
       const featuredGrid = document.getElementById('featuredGrid');
       const marketplaceGrid = document.getElementById('marketplaceGrid');
       
-      // Filter: show only NFTs not in user's gallery (not purchased)
+      // Get purchased NFT IDs
       const purchasedIds = new Set(userNFTs.map(n => n.id));
+      
+      // Available NFTs (not purchased)
       const availableNFTs = nfts.filter(nft => !purchasedIds.has(nft.id));
       
-      let filteredNFTs = availableNFTs;
-      if (currentFilter === 'sale') filteredNFTs = availableNFTs.filter(nft => nft.forSale && !nft.auction);
-      else if (currentFilter === 'purchased') filteredNFTs = userNFTs;
+      let filteredNFTs = [];
+      
+      if (currentFilter === 'all') {
+        // Show both: For Sale (available) + Purchased (user's)
+        filteredNFTs = [...availableNFTs, ...userNFTs];
+      } else if (currentFilter === 'sale') {
+        filteredNFTs = availableNFTs.filter(nft => nft.forSale);
+      } else if (currentFilter === 'purchased') {
+        filteredNFTs = userNFTs;
+      }
       
       const nftCards = filteredNFTs.map(nft => createNFTCard(nft)).join('');
       
-      if (featuredGrid) featuredGrid.innerHTML = availableNFTs.slice(0, 4).map(nft => createNFTCard(nft)).join('');
+      // Featured shows only available NFTs for sale
+      if (featuredGrid) featuredGrid.innerHTML = availableNFTs.filter(n => n.forSale).slice(0, 4).map(nft => createNFTCard(nft)).join('');
       if (marketplaceGrid) {
         marketplaceGrid.innerHTML = filteredNFTs.length ? nftCards : '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No NFTs found</p>';
       }
