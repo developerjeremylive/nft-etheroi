@@ -1798,7 +1798,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
           </div>
           <div class="form-group">
             <label>Starting Price ($) *</label>
-            <input type="number" name="startingPrice" required min="1" placeholder="100">
+            <input type="number" name="startingPrice" required min="1" placeholder="100" id="auctionStartingPrice">
           </div>
           <div class="form-group">
             <label>Duration</label>
@@ -1813,15 +1813,23 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <button type="submit" class="btn btn-primary" style="width: 100%;">Create Auction</button>
         </form>\`;
       
-      document.getElementById('modalCreator').textContent = '-';
-      document.getElementById('modalOwner').textContent = '-';
-      document.getElementById('modalPrice').textContent = '-';
+      // Show current user as creator and owner
+      const creatorName = user?.username || 'You';
+      document.getElementById('modalCreator').textContent = creatorName;
+      document.getElementById('modalOwner').textContent = creatorName;
+      document.getElementById('modalPrice').textContent = '$0 (enter price above)';
       document.getElementById('modalStatus').textContent = 'Creating';
       
-      const btn = document.querySelector('#modal .btn-primary');
-      btn.style.display = 'none';
-      
+      // Update price when user enters it
       setTimeout(() => {
+        const priceInput = document.getElementById('auctionStartingPrice');
+        if (priceInput) {
+          priceInput.addEventListener('input', (e) => {
+            const price = e.target.value;
+            document.getElementById('modalPrice').textContent = price ? '$ ' + parseInt(price).toLocaleString() : '$0';
+          });
+        }
+        
         document.getElementById('createAuctionForm')?.addEventListener('submit', async (e) => {
           e.preventDefault();
           const form = e.target;
