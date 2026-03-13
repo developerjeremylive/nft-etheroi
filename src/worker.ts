@@ -959,16 +959,84 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .bg-animation::before { content: ''; position: absolute; width: 200%; height: 200%; background: radial-gradient(circle at 20% 80%, rgba(108, 99, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(0, 212, 170, 0.1) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(108, 99, 255, 0.08) 0%, transparent 40%); animation: bgMove 20s ease-in-out infinite; }
     @keyframes bgMove { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(-5%, -5%) rotate(5deg); } }
     
-    header { background: rgba(26, 26, 46, 0.9); backdrop-filter: blur(20px); padding: 1rem 2rem; position: fixed; top: 0; left: 0; right: 0; z-index: 100; border-bottom: 1px solid rgba(108, 99, 255, 0.2); }
+    header { 
+      background: linear-gradient(180deg, rgba(15, 15, 26, 0.95) 0%, rgba(26, 26, 46, 0.85) 100%); 
+      backdrop-filter: blur(20px); 
+      padding: 0.8rem 2rem; 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      z-index: 100; 
+      border-bottom: 1px solid rgba(108, 99, 255, 0.3);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), var(--primary), transparent);
+    }
     .header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-decoration: none; cursor: pointer; transition: transform 0.2s; }
-    .logo:hover { transform: scale(1.05); }
+    .logo { 
+      font-size: 1.6rem; 
+      font-weight: 700; 
+      background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%); 
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent; 
+      background-clip: text; 
+      text-decoration: none; 
+      cursor: pointer; 
+      transition: all 0.3s;
+      text-shadow: 0 0 30px rgba(108, 99, 255, 0.5);
+    }
+    .logo:hover { 
+      transform: scale(1.08); 
+      filter: drop-shadow(0 0 10px rgba(108, 99, 255, 0.8));
+    }
     .logo span { font-weight: 300; }
-    nav { display: flex; gap: 1rem; align-items: center; }
-    nav a { color: var(--gray); text-decoration: none; font-weight: 500; transition: color 0.3s; padding: 0.5rem 0.75rem; border-radius: 8px; }
-    nav a:hover, nav a.active { color: var(--primary); background: rgba(108, 99, 255, 0.1); }
+    nav { display: flex; gap: 0.5rem; align-items: center; }
+    nav a { 
+      color: rgba(255, 255, 255, 0.7); 
+      text-decoration: none; 
+      font-weight: 500; 
+      transition: all 0.3s; 
+      padding: 0.5rem 1rem; 
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    nav a::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      transition: width 0.3s;
+    }
+    nav a:hover, nav a.active { 
+      color: #fff; 
+      background: rgba(108, 99, 255, 0.15);
+    }
+    nav a:hover::before, nav a.active::before {
+      width: 80%;
+    }
     nav .nav-dropdown { font-size: 0.7rem; margin-left: 4px; }
-    #createBtn { padding: 0.5rem 1rem; font-size: 0.9rem; }
+    #createBtn { 
+      padding: 0.5rem 1.2rem; 
+      font-size: 0.9rem;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+    }
+    #createBtn:hover {
+      box-shadow: 0 6px 25px rgba(108, 99, 255, 0.6);
+    }
     nav .hidden { display: none !important; }
     
     .btn { padding: 0.6rem 1.5rem; border-radius: 50px; border: none; font-weight: 600; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; }
@@ -1038,7 +1106,103 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 1rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05); color: var(--light); font-size: 1rem; }
     .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
     
-    footer { background: var(--dark); padding: 3rem 2rem; text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    footer { 
+      background: linear-gradient(180deg, rgba(15, 15, 26, 0.98) 0%, rgba(10, 10, 20, 1) 100%); 
+      padding: 4rem 2rem 2rem; 
+      text-align: center; 
+      border-top: 1px solid rgba(108, 99, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), var(--primary), transparent);
+    }
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      text-align: left;
+    }
+    .footer-section h4 {
+      color: #fff;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .footer-section p, .footer-section a {
+      color: var(--gray);
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+    .footer-section a {
+      display: block;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .footer-section a:hover {
+      color: var(--primary);
+    }
+    .footer-bottom {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .footer-links a {
+      color: var(--gray);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.3s;
+    }
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+    .footer-social {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .footer-social a {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(108, 99, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: all 0.3s;
+    }
+    .footer-social a:hover {
+      background: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: 0 5px 20px rgba(108, 99, 255, 0.4);
+    }
     footer p { color: var(--gray); }
     
     .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--primary); color: white; padding: 1rem 2rem; border-radius: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 300; }
@@ -1235,7 +1399,47 @@ const HTML_CONTENT = `<!DOCTYPE html>
   
   <main id="app"></main>
   
-  <footer><p>&copy; 2026 NFT.etheroi. All rights reserved. Built on blockchain technology.</p></footer>
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h4>NFT.etheroi</h4>
+        <p>The next-generation marketplace for digital creators. Buy, sell, and auction unique digital art secured by blockchain.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Marketplace</h4>
+        <a href="#" onclick="navigate('marketplace')">Browse NFTs</a>
+        <a href="#" onclick="navigate('auctions')">Live Auctions</a>
+        <a href="#">Trending</a>
+        <a href="#">New Arrivals</a>
+      </div>
+      <div class="footer-section">
+        <h4>Create</h4>
+        <a href="#" onclick="navigate('create')">Create NFT</a>
+        <a href="#" onclick="navigate('auctions')">Start Auction</a>
+        <a href="#">Minting Guide</a>
+      </div>
+      <div class="footer-section">
+        <h4>Support</h4>
+        <a href="#">Help Center</a>
+        <a href="#">Platform Status</a>
+        <a href="#">Contact Us</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-logo">NFT<span>.etheroi</span></div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Policy</a>
+      </div>
+      <div class="footer-social">
+        <a href="#">𝕏</a>
+        <a href="#">◉</a>
+        <a href="#">✈</a>
+      </div>
+    </div>
+    <p style="margin-top: 2rem; font-size: 0.8rem;">&copy; 2026 NFT.etheroi. Built on blockchain technology. All rights reserved.</p>
+  </footer>
   
   <div class="modal-overlay" id="modal">
     <div class="modal">
