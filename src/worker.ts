@@ -1310,7 +1310,227 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .spinner { width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     
+    /* Landing Page Styles */
+    .landing-page { margin-top: 0; }
+    .landing-hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8rem 2rem 6rem;
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(108, 99, 255, 0.3) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 50%, rgba(139, 92, 246, 0.2) 0%, transparent 40%),
+                  radial-gradient(ellipse at 20% 80%, rgba(99, 102, 241, 0.2) 0%, transparent 40%);
+      z-index: 0;
+    }
+    .hero-content {
+      max-width: 900px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-badge {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid rgba(108, 99, 255, 0.3);
+      border-radius: 50px;
+      color: var(--primary);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
+    .landing-hero h1 {
+      font-size: 4rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      color: white;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, var(--primary), var(--secondary), #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--gray);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .btn-large {
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 4rem;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-number {
+      display: block;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: white;
+    }
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--gray);
+    }
+    
+    .landing-features {
+      padding: 6rem 2rem;
+      background: rgba(15, 15, 26, 0.5);
+    }
+    .landing-features .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 4rem;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .feature-card-large {
+      background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 2.5rem;
+      transition: all 0.4s;
+    }
+    .feature-card-large:hover {
+      transform: translateY(-8px);
+      border-color: rgba(108, 99, 255, 0.5);
+      box-shadow: 0 20px 40px rgba(108, 99, 255, 0.15);
+    }
+    .feature-icon-large {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+    }
+    .feature-card-large h3 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: white;
+    }
+    .feature-card-large p {
+      color: var(--gray);
+      line-height: 1.7;
+    }
+    
+    .landing-how {
+      padding: 6rem 2rem;
+    }
+    .landing-how .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 4rem;
+    }
+    .steps-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 1rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+    .step-item {
+      flex: 1;
+      min-width: 200px;
+      text-align: center;
+      padding: 2rem;
+    }
+    .step-number {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+    .step-item h3 {
+      color: white;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .step-item p {
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+    .step-connector {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      margin-top: 60px;
+    }
+    
+    .landing-cta {
+      padding: 6rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.1));
+    }
+    .cta-content {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .cta-content h2 {
+      font-size: 2.5rem;
+      color: white;
+      margin-bottom: 1rem;
+    }
+    .cta-content p {
+      color: var(--gray);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .landing-footer {
+      padding: 3rem 2rem;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .landing-footer p {
+      color: var(--gray);
+      margin: 0.5rem 0;
+    }
+    .landing-footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .landing-footer a:hover {
+      text-decoration: underline;
+    }
+    
     @media (max-width: 768px) {
+      .landing-hero h1 { font-size: 2.5rem; }
+      .hero-stats { gap: 2rem; }
+      .stat-number { font-size: 2rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .steps-container { flex-direction: column; }
+      .step-connector { display: none; }
+      .cta-content h2 { font-size: 1.8rem; }
       .hero h1 { font-size: 2rem; }
       nav { gap: 1rem; }
       .nft-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
@@ -1615,6 +1835,13 @@ const HTML_CONTENT = `<!DOCTYPE html>
     // Render functions
     function render() {
       const app = document.getElementById('app');
+      
+      // Show landing page for non-authenticated users on home
+      if (currentPage === 'home' && !user) {
+        app.innerHTML = renderLandingPage();
+        return;
+      }
+      
       switch(currentPage) {
         case 'home':
           app.innerHTML = renderHome();
@@ -1642,6 +1869,120 @@ const HTML_CONTENT = `<!DOCTYPE html>
           break;
       }
     }
+    
+    // Landing Page for non-authenticated users
+    function renderLandingPage() {
+      return \`
+        <div class="landing-page">
+          <!-- Hero Section -->
+          <section class="landing-hero">
+            <div class="hero-bg"></div>
+            <div class="hero-content">
+              <div class="hero-badge">🚀 Built on Cloudflare Workers</div>
+              <h1>Discover, Collect & Trade<br><span class="gradient-text">Unique Digital Art</span></h1>
+              <p class="hero-subtitle">NFT.etheroi is the next-generation NFT marketplace where creators and collectors converge. Secure, fast, and powered by blockchain technology.</p>
+              <div class="hero-cta">
+                <button class="btn btn-primary btn-large" onclick="openAuthModal()">Get Started →</button>
+                <button class="btn btn-secondary btn-large" onclick="navigate('auctions')">Explore Auctions</button>
+              </div>
+              <div class="hero-stats">
+                <div class="stat-item"><span class="stat-number">10K+</span><span class="stat-label">Digital Artworks</span></div>
+                <div class="stat-item"><span class="stat-number">5K+</span><span class="stat-label">Active Collectors</span></div>
+                <div class="stat-item"><span class="stat-number">50+</span><span class="stat-label">AI Artists</span></div>
+              </div>
+            </div>
+          </section>
+          
+          <!-- Features Section -->
+          <section class="landing-features">
+            <h2 class="section-title">Why Choose <span class="gradient-text">NFT.etheroi</span>?</h2>
+            <div class="features-grid">
+              <div class="feature-card-large">
+                <div class="feature-icon-large">🔐</div>
+                <h3>Secure Blockchain</h3>
+                <p>Every NFT is secured by Ethereum blockchain technology. Your digital assets are safe, transparent, and truly yours.</p>
+              </div>
+              <div class="feature-card-large">
+                <div class="feature-icon-large">⚡</div>
+                <h3>Lightning Fast</h3>
+                <p>Built on Cloudflare Workers for sub-second transactions. No more waiting — trade instantly with zero friction.</p>
+              </div>
+              <div class="feature-card-large">
+                <div class="feature-icon-large">🤖</div>
+                <h3>AI-Powered</h3>
+                <p>Create unique digital art with AI tools. Integrate with etheroi.com for cutting-edge AI generation features.</p>
+              </div>
+              <div class="feature-card-large">
+                <div class="feature-icon-large">🔨</div>
+                <h3>Live Auctions</h3>
+                <p>Participate in exciting auctions for exclusive digital pieces. Bid, win, and expand your collection.</p>
+              </div>
+              <div class="feature-card-large">
+                <div class="feature-icon-large">🎨</div>
+                <h3>Easy Creation</h3>
+                <p>Mint your own NFTs in minutes. No coding required — just upload, describe, and start selling.</p>
+              </div>
+              <div class="feature-card-large">
+                <div class="feature-icon-large">🌐</div>
+                <h3>Global Community</h3>
+                <p>Join thousands of creators and collectors from around the world. Share, trade, and grow together.</p>
+              </div>
+            </div>
+          </section>
+          
+          <!-- How It Works -->
+          <section class="landing-how">
+            <h2 class="section-title">How It <span class="gradient-text">Works</span></h2>
+            <div class="steps-container">
+              <div class="step-item">
+                <div class="step-number">01</div>
+                <h3>Connect Wallet</h3>
+                <p>Sign up or connect your wallet to get started in seconds</p>
+              </div>
+              <div class="step-connector"></div>
+              <div class="step-item">
+                <div class="step-number">02</div>
+                <h3>Discover Art</h3>
+                <p>Browse thousands of unique digital artworks from global creators</p>
+              </div>
+              <div class="step-connector"></div>
+              <div class="step-item">
+                <div class="step-number">03</div>
+                <h3>Buy or Bid</h3>
+                <p>Purchase instantly or participate in exciting auctions</p>
+              </div>
+              <div class="step-connector"></div>
+              <div class="step-item">
+                <div class="step-number">04</div>
+                <h3>Build Collection</h3>
+                <p>Own and showcase your digital art collection forever</p>
+              </div>
+            </div>
+          </section>
+          
+          <!-- CTA Section -->
+          <section class="landing-cta">
+            <div class="cta-content">
+              <h2>Ready to Start Your Journey?</h2>
+              <p>Join the revolution of digital art ownership. Create, collect, and trade with confidence.</p>
+              <button class="btn btn-primary btn-large" onclick="openAuthModal()">🚀 Start Now — It's Free</button>
+            </div>
+          </section>
+          
+          <!-- Footer Note -->
+          <section class="landing-footer">
+            <p>🔗 Powered by <a href="https://etheroi.com" target="_blank">etheroi.com</a> — AI Products Platform</p>
+            <p>👨‍💻 Built by <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a> — Full Stack Developer</p>
+          </section>
+        </div>
+      \`;
+    }
+    
+    // Open auth modal from landing page
+    window.openAuthModal = function() {
+      const overlay = document.getElementById('authOverlay');
+      if (overlay) overlay.classList.remove('hidden');
+    };
     
     function renderHome() {
       return \`
