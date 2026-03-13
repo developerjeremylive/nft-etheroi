@@ -798,14 +798,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
   <div class="auth-overlay" id="authOverlay">
     <div class="auth-card">
       <div class="auth-tabs">
-        <button class="auth-tab active" data-tab="login">Sign In</button>
-        <button class="auth-tab" data-tab="register">Register</button>
+        <button class="auth-tab active" data-tab="login" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" data-tab="register" onclick="switchTab('register')">Register</button>
       </div>
       <div class="auth-icon">🔐</div>
       <h2 id="authTitle">Welcome Back</h2>
       <p id="authSubtitle">Sign in to continue to NFT.etheroi</p>
       <div class="auth-error" id="authError">Invalid email or password</div>
-      <form id="authForm">
+      <form id="authForm" onsubmit="event.preventDefault(); handleAuth();">
         <div class="auth-input-group auth-input-user" id="usernameGroup" style="display: none;">
           <input type="text" name="username" placeholder="Username">
         </div>
@@ -915,6 +915,54 @@ const HTML_CONTENT = `<!DOCTYPE html>
       document.getElementById('authBtn').classList.remove('hidden');
       document.getElementById('logoutBtn').classList.add('hidden');
       document.querySelectorAll('.protected').forEach(el => el.classList.add('hidden'));
+    }
+    
+    // Global switchTab function for auth tabs
+    window.switchTab = function(tab) {
+      currentAuthTab = tab;
+      document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+      if (tab === 'login') {
+        document.getElementById('authTitle').textContent = 'Welcome Back';
+        document.getElementById('authSubtitle').textContent = 'Sign in to continue to NFT.etheroi';
+        document.getElementById('usernameGroup').style.display = 'none';
+      } else {
+        document.getElementById('authTitle').textContent = 'Create Account';
+        document.getElementById('authSubtitle').textContent = 'Join NFT.etheroi today';
+        document.getElementById('usernameGroup').style.display = 'block';
+      }
+    }
+    
+    // Global handleAuth function for form
+    window.handleAuth = async function() {
+      var form = document.getElementById('authForm');
+      var fd = new FormData(form);
+      var email = fd.get('email');
+      var password = fd.get('password');
+      var username = fd.get('username');
+      var endpoint = currentAuthTab === 'login' ? '/api/auth/login' : '/api/auth/register';
+      
+      try {
+        var resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: email, password: password, username: username })
+        });
+        var data = await resp.json();
+        if (data.success) {
+          user = data.user;
+          document.getElementById('authOverlay').classList.add('hidden');
+          showLoggedInUI();
+          showToast(currentAuthTab === 'login' ? 'Welcome back!' : 'Account created!', 'success');
+        } else {
+          document.getElementById('authError').textContent = data.error || 'Authentication failed';
+          document.getElementById('authError').classList.add('show');
+        }
+      } catch(e) {
+        document.getElementById('authError').textContent = 'Connection error';
+        document.getElementById('authError').classList.add('show');
+      }
     }
     
     // Auth handlers
