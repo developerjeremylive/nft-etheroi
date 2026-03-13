@@ -1255,6 +1255,22 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     
     /* Auth Modal */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 700;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .auth-overlay.hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .auth-card { background: var(--dark); border-radius: 24px; padding: 3rem; width: 100%; max-width: 420px; text-align: center; animation: modalIn 0.3s ease; }
     .auth-tabs { display: flex; margin-bottom: 2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     .auth-tab { flex: 1; padding: 1rem; background: none; border: none; color: var(--gray); font-size: 1rem; cursor: pointer; transition: all 0.3s; }
@@ -2198,9 +2214,13 @@ const HTML_CONTENT = `<!DOCTYPE html>
       if (landingOverlay) {
         landingOverlay.classList.add('hidden');
       }
-      // Show auth modal
+      // Show auth modal with darkened background
       const authOverlay = document.getElementById('authOverlay');
-      if (authOverlay) authOverlay.classList.remove('hidden');
+      if (authOverlay) {
+        authOverlay.classList.remove('hidden');
+      }
+      // Darken entire page
+      document.body.style.overflow = 'hidden';
     };
     
     // Open auth modal from landing page
@@ -2210,7 +2230,11 @@ const HTML_CONTENT = `<!DOCTYPE html>
       if (landingOverlay) landingOverlay.classList.add('hidden');
       // Show auth modal
       const overlay = document.getElementById('authOverlay');
-      if (overlay) overlay.classList.remove('hidden');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+      }
+      // Darken entire page
+      document.body.style.overflow = 'hidden';
     };
     
     function renderHome() {
