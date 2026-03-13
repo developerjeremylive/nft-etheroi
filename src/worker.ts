@@ -384,6 +384,256 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
     return new Response(JSON.stringify({ success: true, message: 'NFT stored locally' }), { headers });
   }
   
+  // ==================== AUCTIONS API ====================
+  
+  // GET /api/auctions - List all auctions
+  if (path === '/api/auctions' && request.method === 'GET') {
+    try {
+      const status = url.searchParams.get('status');
+      let query = 'SELECT * FROM auctions';
+      const params: any[] = [];
+      
+      if (status) {
+        query += ' WHERE status = ?';
+        params.push(status);
+      }
+      
+      query += ' ORDER BY end_time ASC';
+      
+      try {
+        const { results } = await env.DB.prepare(query).bind(...params).run();
+        return new Response(JSON.stringify(results || []), { headers });
+      } catch (d1Error) {
+        // Return demo data if D1 fails
+        return new Response(JSON.stringify(getSampleAuctions()), { headers });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: 'Failed to fetch auctions' }), { status: 500, headers });
+    }
+  }
+  
+  // POST /api/auctions - Create new auction
+  if (path === '/api/auctions' && request.method === 'POST') {
+    if (!sessionUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers });
+    }
+    
+    try {
+      const body = await request.json() as {
+        title: string;
+        description: string;
+        imageUrl: string;
+        startingPrice: number;
+        durationHours: number;
+      };
+      
+      if (!body.title || !body.startingPrice) {
+        return new Response(JSON.stringify({ error: 'Title and starting price required' }), { status: 400, headers });
+      }
+      
+      const now = Date.now();
+      const auctionId = crypto.randomUUID();
+      const endTime = now + (body.durationHours || 24) * 3600000;
+      
+      // Get user info
+      let creatorName = 'Anonymous';
+      try {
+        const user = await env.DB.prepare('SELECT username FROM users WHERE id = ?').bind(sessionUserId).first() as { username: string } | undefined;
+        if (user) creatorName = user.username;
+      } catch {}
+      
+      const auction = {
+        id: auctionId,
+        title: body.title,
+        description: body.description || '',
+        image_url: body.imageUrl || `https://picsum.photos/seed/${auctionId}/400/400`,
+        starting_price: body.startingPrice,
+        current_price: body.startingPrice,
+        highest_bidder_id: null,
+        highest_bidder_name: null,
+        creator_id: sessionUserId,
+        creator_name: creatorName,
+        start_time: now,
+        end_time: endTime,
+        status: 'active',
+        bid_count: 0,
+        created_at: now
+      };
+      
+      try {
+        await env.DB.prepare(`
+          INSERT INTO auctions (id, title, description, image_url, starting_price, current_price, highest_bidder_id, highest_bidder_name, creator_id, creator_name, start_time, end_time, status, bid_count, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          auction.id, auction.title, auction.description, auction.image_url,
+          auction.starting_price, auction.current_price, auction.highest_bidder_id,
+          auction.highest_bidder_name, auction.creator_id, auction.creator_name,
+          auction.start_time, auction.end_time, auction.status, auction.bid_count,
+          auction.created_at
+        ).run();
+      } catch (d1Error) {
+        console.log('D1 Error creating auction:', d1Error);
+      }
+      
+      return new Response(JSON.stringify(auction), { status: 201, headers });
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
+    }
+  }
+  
+  // GET /api/auctions/:id - Get single auction with bids
+  const auctionMatch = path.match(/^\/api\/auctions\/([^\/]+)$/);
+  if (auctionMatch && request.method === 'GET') {
+    const auctionId = auctionMatch[1];
+    
+    try {
+      const auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(auctionId).first();
+      if (!auction) {
+        // Return demo auction
+        const demoAuctions = getSampleAuctions();
+        const demo = demoAuctions.find(a => a.id === auctionId);
+        if (demo) return new Response(JSON.stringify(demo), { headers });
+        return new Response(JSON.stringify({ error: 'Auction not found' }), { status: 404, headers });
+      }
+      
+      // Get bids for this auction
+      let bids: any[] = [];
+      try {
+        const { results } = await env.DB.prepare('SELECT * FROM bids WHERE auction_id = ? ORDER BY amount DESC').bind(auctionId).run();
+        bids = results || [];
+      } catch {}
+      
+      return new Response(JSON.stringify({ ...auction, bids }), { headers });
+    } catch {
+      return new Response(JSON.stringify({ error: 'Failed to fetch auction' }), { status: 500, headers });
+    }
+  }
+  
+  // POST /api/auctions/:id/bid - Place a bid
+  const bidMatch = path.match(/^\/api\/auctions\/([^\/]+)\/bid$/);
+  if (bidMatch && request.method === 'POST') {
+    if (!sessionUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers });
+    }
+    
+    const auctionId = bidMatch[1];
+    
+    try {
+      const body = await request.json() as { amount: number };
+      const amount = body.amount;
+      
+      if (!amount || amount <= 0) {
+        return new Response(JSON.stringify({ error: 'Valid amount required' }), { status: 400, headers });
+      }
+      
+      // Get current auction
+      let auction: any;
+      try {
+        auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(auctionId).first();
+      } catch {}
+      
+      if (!auction) {
+        // Check demo auctions
+        const demoAuctions = getSampleAuctions();
+        auction = demoAuctions.find(a => a.id === auctionId);
+        if (!auction) return new Response(JSON.stringify({ error: 'Auction not found' }), { status: 404, headers });
+      }
+      
+      if (auction.status !== 'active') {
+        return new Response(JSON.stringify({ error: 'Auction is not active' }), { status: 400, headers });
+      }
+      
+      if (Date.now() > auction.end_time) {
+        return new Response(JSON.stringify({ error: 'Auction has ended' }), { status: 400, headers });
+      }
+      
+      if (amount <= auction.current_price) {
+        return new Response(JSON.stringify({ error: 'Bid must be higher than current price' }), { status: 400, headers });
+      }
+      
+      // Get bidder info
+      let bidderName = 'Anonymous';
+      try {
+        const user = await env.DB.prepare('SELECT username FROM users WHERE id = ?').bind(sessionUserId).first() as { username: string } | undefined;
+        if (user) bidderName = user.username;
+      } catch {}
+      
+      const bidId = crypto.randomUUID();
+      const bid = {
+        id: bidId,
+        auction_id: auctionId,
+        bidder_id: sessionUserId,
+        bidder_name: bidderName,
+        amount: amount,
+        timestamp: Date.now()
+      };
+      
+      // Save bid
+      try {
+        await env.DB.prepare(`
+          INSERT INTO bids (id, auction_id, bidder_id, bidder_name, amount, timestamp)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(bid.id, bid.auction_id, bid.bidder_id, bid.bidder_name, bid.amount, bid.timestamp).run();
+        
+        // Update auction
+        await env.DB.prepare(`
+          UPDATE auctions SET current_price = ?, highest_bidder_id = ?, highest_bidder_name = ?, bid_count = bid_count + 1 WHERE id = ?
+        `).bind(amount, sessionUserId, bidderName, auctionId).run();
+      } catch (d1Error) {
+        console.log('D1 Error placing bid:', d1Error);
+      }
+      
+      return new Response(JSON.stringify({ bid, auction: { ...auction, current_price: amount, highest_bidder_id: sessionUserId, highest_bidder_name: bidderName } }), { headers });
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
+    }
+  }
+  
+  // GET /api/auctions/user/bids - Get current user's bids
+  if (path === '/api/auctions/user/bids' && request.method === 'GET') {
+    if (!sessionUserId) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401, headers });
+    }
+    
+    try {
+      let bids: any[] = [];
+      try {
+        const { results } = await env.DB.prepare('SELECT * FROM bids WHERE bidder_id = ? ORDER BY timestamp DESC').bind(sessionUserId).run();
+        bids = results || [];
+      } catch {}
+      
+      // Enrich with auction data
+      const enrichedBids = await Promise.all(bids.map(async (bid: any) => {
+        try {
+          const auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(bid.auction_id).first();
+          return { ...bid, auction };
+        } catch {
+          return { ...bid, auction: null };
+        }
+      }));
+      
+      return new Response(JSON.stringify(enrichedBids), { headers });
+    } catch {
+      return new Response(JSON.stringify({ error: 'Failed to fetch bids' }), { status: 500, headers });
+    }
+  }
+  
+  // GET /api/auctions/user - Get current user info with balance
+  if (path === '/api/auctions/user' && request.method === 'GET') {
+    let user = { id: sessionUserId || 'guest', username: 'Guest', email: '', walletBalance: 10000, createdAt: Date.now() };
+    
+    if (sessionUserId) {
+      try {
+        const dbUser = await env.DB.prepare('SELECT id, username, email, wallet_address, created_at FROM users WHERE id = ?').bind(sessionUserId).first() as any;
+        if (dbUser) {
+          user = { ...dbUser, walletBalance: 10000, createdAt: dbUser.created_at };
+        }
+      } catch {}
+    }
+    
+    return new Response(JSON.stringify(user), { headers });
+  }
+  
   return new Response('API endpoint not found', { status: 404 });
 }
 
@@ -395,6 +645,80 @@ function getSampleNFTs(): NFT[] {
     { id: "4", name: "Ethereal Portals", description: "Gates to other dimensions", image: "https://picsum.photos/seed/nft4/400/400", creator: "0xmnop...qrst", owner: "0xmnop...qrst", price: 0.8, forSale: true, auction: false, createdAt: Date.now() - 86400000 * 2, tags: ["art", "portal"] },
     { id: "5", name: "Blockchain Harmony", description: "Visual representation of decentralized harmony", image: "https://picsum.photos/seed/nft5/400/400", creator: "0xuvwx...yz12", owner: "0xuvwx...yz12", price: 3.0, forSale: true, auction: true, auctionEnd: Date.now() + 86400000 * 1, createdAt: Date.now() - 86400000 * 10, tags: ["art", "blockchain"] },
     { id: "6", name: "Virtual Reality Dreams", description: "Where virtual meets reality", image: "https://picsum.photos/seed/nft6/400/400", creator: "0x3456...7890", owner: "0x3456...7890", price: 1.5, forSale: true, auction: false, createdAt: Date.now() - 86400000 * 1, tags: ["art", "vr"] }
+  ];
+}
+
+function getSampleAuctions(): any[] {
+  const now = Date.now();
+  return [
+    {
+      id: "auction-1",
+      title: "Ethereal Genesis #001",
+      description: "The first piece of the Ethereal Genesis collection. A unique digital masterpiece representing the dawn of a new era in digital art.",
+      image_url: "https://picsum.photos/seed/ethereal1/800/600",
+      starting_price: 1000,
+      current_price: 2500,
+      highest_bidder_id: "user-1",
+      highest_bidder_name: "CryptoKing",
+      creator_id: "user-3",
+      creator_name: "DigitalArtist",
+      start_time: now - 86400000 * 2,
+      end_time: now + 86400000 * 3,
+      status: "active",
+      bid_count: 5,
+      created_at: now - 86400000 * 2
+    },
+    {
+      id: "auction-2",
+      title: "Neon Dreams Collection",
+      description: "A stunning cyberpunk-inspired digital artwork featuring vibrant neon colors and futuristic cityscapes.",
+      image_url: "https://picsum.photos/seed/neon2/800/600",
+      starting_price: 500,
+      current_price: 1200,
+      highest_bidder_id: "user-2",
+      highest_bidder_name: "NFTHunter",
+      creator_id: "user-3",
+      creator_name: "DigitalArtist",
+      start_time: now - 86400000,
+      end_time: now + 86400000 * 5,
+      status: "active",
+      bid_count: 8,
+      created_at: now - 86400000
+    },
+    {
+      id: "auction-3",
+      title: "Abstract Quantum #047",
+      description: "A mesmerizing abstract piece created using quantum algorithms. Each viewing reveals new patterns and depth.",
+      image_url: "https://picsum.photos/seed/quantum3/800/600",
+      starting_price: 2000,
+      current_price: 3200,
+      highest_bidder_id: null,
+      highest_bidder_name: null,
+      creator_id: "user-3",
+      creator_name: "DigitalArtist",
+      start_time: now - 86400000 * 3,
+      end_time: now + 86400000 * 1,
+      status: "active",
+      bid_count: 3,
+      created_at: now - 86400000 * 3
+    },
+    {
+      id: "auction-4",
+      title: "Cosmic Voyage",
+      description: "An immersive journey through space and time. Winner of the Digital Art Excellence Award 2025.",
+      image_url: "https://picsum.photos/seed/cosmic4/800/600",
+      starting_price: 5000,
+      current_price: 7500,
+      highest_bidder_id: "user-1",
+      highest_bidder_name: "CryptoKing",
+      creator_id: "user-3",
+      creator_name: "DigitalArtist",
+      start_time: now - 86400000 * 5,
+      end_time: now - 86400000,
+      status: "ended",
+      bid_count: 12,
+      created_at: now - 86400000 * 5
+    }
   ];
 }
 
@@ -648,6 +972,40 @@ const HTML_CONTENT = `<!DOCTYPE html>
       .profile-header { flex-direction: column; text-align: center; }
       .wallet-details { grid-template-columns: 1fr; }
     }
+    
+    /* Auction Styles */
+    .auction-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem; }
+    .auction-card { position: relative; background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+    .auction-card:hover { transform: translateY(-12px); border-color: var(--primary); box-shadow: 0 25px 50px rgba(108, 99, 255, 0.2), 0 0 0 1px var(--primary); }
+    .auction-card:hover .auction-image { transform: scale(1.1); }
+    .auction-card:hover .auction-overlay { opacity: 0.3; }
+    
+    .auction-hot { position: absolute; top: 1rem; left: 1rem; z-index: 10; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #ff6b6b, #ff8e53); color: white; font-size: 0.75rem; font-weight: 700; border-radius: 20px; animation: pulse 2s infinite; }
+    .auction-ended { position: absolute; top: 1rem; left: 1rem; z-index: 10; padding: 0.4rem 0.8rem; background: rgba(139, 139, 158, 0.8); color: white; font-size: 0.75rem; font-weight: 700; border-radius: 20px; }
+    
+    .auction-image-container { position: relative; height: 220px; overflow: hidden; }
+    .auction-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+    .auction-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(15, 15, 26, 0.9), transparent); transition: opacity 0.4s; }
+    
+    .auction-content { padding: 1.5rem; }
+    .auction-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: white; }
+    .auction-description { font-size: 0.85rem; color: var(--gray); margin-bottom: 1rem; line-height: 1.5; }
+    
+    .auction-stats { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .auction-stat { flex: 1; background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 12px; text-align: center; }
+    .stat-label { display: block; font-size: 0.75rem; color: var(--gray); margin-bottom: 0.3rem; }
+    .stat-value { display: block; font-weight: 700; font-size: 1.1rem; color: white; }
+    .stat-value.bid { color: var(--secondary); }
+    
+    .auction-time { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; background: rgba(108, 99, 255, 0.1); border-radius: 12px; margin-bottom: 0.8rem; }
+    .time-label { font-size: 0.8rem; color: var(--gray); }
+    .time-value { font-weight: 700; color: var(--primary); font-size: 1rem; }
+    .time-value.urgent { color: #ff6b6b; animation: pulse 1s infinite; }
+    
+    .auction-leader { font-size: 0.8rem; color: var(--gray); }
+    .auction-leader span { color: var(--secondary); font-weight: 600; }
+    
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
   </style>
 </head>
 <body>
@@ -685,6 +1043,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       <nav>
         <a href="#" class="active" data-page="home">Home</a>
         <a href="#" data-page="marketplace">Marketplace</a>
+        <a href="#" data-page="auctions">Auctions</a>
         <a href="#" data-page="create" class="protected hidden">Create</a>
         <a href="#" data-page="gallery" class="protected hidden">Gallery</a>
         <a href="#" data-page="profile" class="protected hidden">Profile</a>
@@ -879,6 +1238,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
           app.innerHTML = renderMarketplace();
           fetchNFTs();
           break;
+        case 'auctions':
+          app.innerHTML = renderAuctions();
+          fetchAuctions();
+          break;
         case 'create':
           app.innerHTML = renderCreate();
           break;
@@ -926,6 +1289,23 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <button class="filter-btn" data-filter="auction">Auctions</button>
         </div>
         <div class="nft-grid" id="marketplaceGrid"></div>\`;
+    }
+    
+    function renderAuctions() {
+      return \`
+        <h2 class="section-title">🔥 Live Auctions</h2>
+        <div class="filters">
+          <button class="filter-btn active" data-auction-filter="all">All</button>
+          <button class="filter-btn" data-auction-filter="active">Active</button>
+          <button class="filter-btn" data-auction-filter="ended">Ended</button>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateAuctionModal()" style="margin-bottom: 2rem;">+ Create Auction</button>
+        <div class="auction-grid" id="auctionGrid">
+          <div style="text-align: center; padding: 4rem; color: var(--gray);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔨</div>
+            <p>Loading auctions...</p>
+          </div>
+        </div>\`;
     }
     
     function renderCreate() {
@@ -1233,6 +1613,245 @@ const HTML_CONTENT = `<!DOCTYPE html>
         console.error('Error fetching NFTs:', error);
       }
     }
+    
+    // Auction functions
+    let auctions = [];
+    let currentAuctionFilter = 'all';
+    
+    async function fetchAuctions() {
+      try {
+        const status = currentAuctionFilter !== 'all' ? '?status=' + currentAuctionFilter : '';
+        const response = await fetch('/api/auctions' + status);
+        auctions = await response.json();
+        renderAuctionsList();
+      } catch (error) {
+        console.error('Error fetching auctions:', error);
+      }
+    }
+    
+    function renderAuctionsList() {
+      const grid = document.getElementById('auctionGrid');
+      if (!grid) return;
+      
+      if (auctions.length === 0) {
+        grid.innerHTML = \`
+          <div style="text-align: center; padding: 4rem; color: var(--gray); grid-column: 1/-1;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔨</div>
+            <p>No auctions found</p>
+            <button class="btn btn-primary" onclick="openCreateAuctionModal()" style="margin-top: 1rem;">Create First Auction</button>
+          </div>\`;
+        return;
+      }
+      
+      grid.innerHTML = auctions.map(auction => createAuctionCard(auction)).join('');
+      
+      // Setup filter buttons
+      document.querySelectorAll('[data-auction-filter]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('[data-auction-filter]').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          currentAuctionFilter = e.target.dataset.auctionFilter;
+          fetchAuctions();
+        });
+      });
+    }
+    
+    function createAuctionCard(auction) {
+      const isEnded = auction.status === 'ended';
+      const isHot = auction.bid_count > 5;
+      const timeLeft = isEnded ? 'Ended' : formatTimeLeft(auction.end_time);
+      
+      return \`
+        <div class="auction-card" onclick="openAuctionModal('\${auction.id}')">
+          \${isHot ? '<span class="auction-hot">🔥 HOT</span>' : ''}
+          \${isEnded ? '<span class="auction-ended">Ended</span>' : ''}
+          <div class="auction-image-container">
+            <img src="\${auction.image_url}" alt="\${auction.title}" class="auction-image">
+            <div class="auction-overlay"></div>
+          </div>
+          <div class="auction-content">
+            <h3 class="auction-title">\${auction.title}</h3>
+            <p class="auction-description">\${auction.description?.substring(0, 80)}...</p>
+            <div class="auction-stats">
+              <div class="auction-stat">
+                <span class="stat-label">Current Bid</span>
+                <span class="stat-value bid">\$ \${auction.current_price?.toLocaleString()}</span>
+              </div>
+              <div class="auction-stat">
+                <span class="stat-label">Bids</span>
+                <span class="stat-value">\${auction.bid_count || 0}</span>
+              </div>
+            </div>
+            <div class="auction-time">
+              <span class="time-label">\${isEnded ? 'Ended' : 'Ends in'}</span>
+              <span class="time-value \${!isEnded && auction.end_time - Date.now() < 3600000 ? 'urgent' : ''}">\${timeLeft}</span>
+            </div>
+            \${auction.highest_bidder_name ? \`<p class="auction-leader">Leading: <span>\${auction.highest_bidder_name}</span></p>\` : ''}
+          </div>
+        </div>\`;
+    }
+    
+    function formatTimeLeft(endTime) {
+      const diff = endTime - Date.now();
+      if (diff <= 0) return 'Ended';
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (days > 0) return \`\${days}d \${hours}h\`;
+      if (hours > 0) return \`\${hours}h \${minutes}m\`;
+      return \`\${minutes}m\`;
+    }
+    
+    window.openAuctionModal = async function(auctionId) {
+      try {
+        const response = await fetch('/api/auctions/' + auctionId);
+        const auction = await response.json();
+        
+        const modal = document.getElementById('modal');
+        const isEnded = auction.status === 'ended';
+        
+        document.getElementById('modalImage').src = auction.image_url;
+        document.getElementById('modalTitle').textContent = auction.title;
+        document.getElementById('modalDescription').textContent = auction.description;
+        document.getElementById('modalCreator').textContent = auction.creator_name;
+        document.getElementById('modalOwner').textContent = auction.creator_name;
+        document.getElementById('modalPrice').textContent = '$ ' + auction.current_price?.toLocaleString();
+        document.getElementById('modalStatus').textContent = auction.status;
+        
+        const btn = document.querySelector('#modal .btn-primary');
+        if (isEnded) {
+          btn.textContent = 'Auction Ended';
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+        } else {
+          btn.textContent = 'Place Bid';
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.onclick = () => openBidModal(auction);
+        }
+        
+        modal.classList.add('active');
+      } catch (error) {
+        console.error('Error loading auction:', error);
+        showToast('Error loading auction');
+      }
+    };
+    
+    function openBidModal(auction) {
+      const bidAmount = prompt('Enter your bid (minimum $' + (auction.current_price + 100) + '):', auction.current_price + 100);
+      if (!bidAmount) return;
+      
+      const amount = parseInt(bidAmount);
+      if (amount <= auction.current_price) {
+        showToast('Bid must be higher than current price');
+        return;
+      }
+      
+      fetch('/api/auctions/' + auction.id + '/bid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          showToast(data.error);
+        } else {
+          showToast('Bid placed successfully!');
+          closeModal();
+          fetchAuctions();
+        }
+      })
+      .catch(err => {
+        showToast('Error placing bid');
+      });
+    }
+    
+    window.openCreateAuctionModal = function() {
+      if (!isLoggedIn()) {
+        showToast('Please login first');
+        return;
+      }
+      
+      const modal = document.getElementById('modal');
+      document.getElementById('modalImage').src = 'https://picsum.photos/seed/new/800/800';
+      document.getElementById('modalTitle').textContent = 'Create New Auction';
+      document.getElementById('modalDescription').innerHTML = \`
+        <form id="createAuctionForm">
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" required placeholder="Enter auction title">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="3" placeholder="Describe your digital piece"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Image URL</label>
+            <input type="url" name="imageUrl" placeholder="https://example.com/image.jpg">
+          </div>
+          <div class="form-group">
+            <label>Starting Price ($) *</label>
+            <input type="number" name="startingPrice" required min="1" placeholder="100">
+          </div>
+          <div class="form-group">
+            <label>Duration</label>
+            <select name="durationHours">
+              <option value="12">12 hours</option>
+              <option value="24" selected>24 hours</option>
+              <option value="48">48 hours</option>
+              <option value="72">72 hours</option>
+              <option value="168">1 week</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Create Auction</button>
+        </form>\`;
+      
+      document.getElementById('modalCreator').textContent = '-';
+      document.getElementById('modalOwner').textContent = '-';
+      document.getElementById('modalPrice').textContent = '-';
+      document.getElementById('modalStatus').textContent = 'Creating';
+      
+      const btn = document.querySelector('#modal .btn-primary');
+      btn.style.display = 'none';
+      
+      setTimeout(() => {
+        document.getElementById('createAuctionForm')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const form = e.target;
+          const data = {
+            title: form.title.value,
+            description: form.description.value,
+            imageUrl: form.imageUrl.value,
+            startingPrice: parseInt(form.startingPrice.value),
+            durationHours: parseInt(form.durationHours.value)
+          };
+          
+          try {
+            const res = await fetch('/api/auctions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if (result.error) {
+              showToast(result.error);
+            } else {
+              showToast('Auction created successfully!');
+              closeModal();
+              fetchAuctions();
+            }
+          } catch (err) {
+            showToast('Error creating auction');
+          }
+        });
+      }, 100);
+      
+      modal.classList.add('active');
+    };
     
     function loadUserNFTs() {
       userNFTs = JSON.parse(localStorage.getItem('nft_etheroi_nfts') || '[]');
