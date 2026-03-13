@@ -2115,14 +2115,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       // Get purchased NFT IDs
       const purchasedIds = new Set(userNFTs.map(n => n.id));
       
-      // Available NFTs (not purchased)
-      const availableNFTs = nfts.filter(nft => !purchasedIds.has(nft.id));
+      // Available NFTs: not purchased AND not auction (exclude auction NFTs from marketplace)
+      const availableNFTs = nfts.filter(nft => !purchasedIds.has(nft.id) && !nft.auction);
       
       let filteredNFTs = [];
       
       if (currentFilter === 'all') {
-        // Show both: For Sale (available) + Purchased (user's)
-        filteredNFTs = [...availableNFTs, ...userNFTs];
+        // Show both: For Sale (available) + Purchased (user's) - NO auctions
+        const forSaleNFTs = availableNFTs.filter(nft => nft.forSale);
+        filteredNFTs = [...forSaleNFTs, ...userNFTs];
       } else if (currentFilter === 'sale') {
         filteredNFTs = availableNFTs.filter(nft => nft.forSale);
       } else if (currentFilter === 'purchased') {
