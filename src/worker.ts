@@ -331,64 +331,41 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
     }
   }
   
-  // Network RPC URLs
-  const NETWORKS_RPC: Record<string, string> = {
-    'ethereum': 'https://eth.llamarpc.com',
-    'polygon': 'https://polygon-rpc.com',
-    'bsc': 'https://bsc-dataseed.binance.org',
-    'avalanche': 'https://api.avax.network/ext/bc/C/rpc',
-    'arbitrum': 'https://arb1.arbitrum.io/rpc',
-    'optimism': 'https://mainnet.optimism.io'
-  };
-  
-  const NETWORKS_NAMES: Record<string, string> = {
-    'ethereum': 'Ethereum Mainnet',
-    'polygon': 'Polygon',
-    'bsc': 'BNB Smart Chain',
-    'avalanche': 'Avalanche',
-    'arbitrum': 'Arbitrum One',
-    'optimism': 'Optimism'
-  };
-  
   // GET /api/wallet/balance - Get real balance from blockchain
   if (path === '/api/wallet/balance' && request.method === 'GET') {
     const address = url.searchParams.get('address');
-    const network = url.searchParams.get('network') || 'ethereum';
     
     if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
       return new Response(JSON.stringify({ error: 'Invalid address' }), { status: 400, headers });
     }
     
-    const rpcUrl = NETWORKS_RPC[network] || NETWORKS_RPC['ethereum'];
+    const rpcUrl = env.ETHEREUM_RPC || 'https://eth.llamarpc.com';
     const balance = await getEthBalance(address, rpcUrl);
     
     return new Response(JSON.stringify({
       balance: balance,
       address: address,
-      network: network,
-      networkName: NETWORKS_NAMES[network] || 'Unknown',
+      network: 'Ethereum Mainnet',
       lastUpdated: new Date().toISOString()
     }), { headers });
   }
   
-  // POST /api/wallet/balance - Get real balance from blockchain (POST with body)
+  // GET /api/wallet/balance - Get real balance from blockchain (POST with body)
   if (path === '/api/wallet/balance' && request.method === 'POST') {
     try {
-      const body = await request.json() as { address: string; network?: string };
+      const body = await request.json() as { address: string };
       
       if (!body.address || !body.address.match(/^0x[a-fA-F0-9]{40}$/)) {
         return new Response(JSON.stringify({ error: 'Invalid address' }), { status: 400, headers });
       }
       
-      const network = body.network || 'ethereum';
-      const rpcUrl = NETWORKS_RPC[network] || NETWORKS_RPC['ethereum'];
+      const rpcUrl = env.ETHEREUM_RPC || 'https://eth.llamarpc.com';
       const balance = await getEthBalance(body.address, rpcUrl);
       
       return new Response(JSON.stringify({
         balance: balance,
         address: body.address,
-        network: network,
-        networkName: NETWORKS_NAMES[network] || 'Unknown',
+        network: 'Ethereum Mainnet',
         lastUpdated: new Date().toISOString()
       }), { headers });
     } catch {
@@ -649,124 +626,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     .wallet-info-card strong {
       color: var(--secondary);
-    }
-    .networks-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin: 0.5rem 0;
-    }
-    .network-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.4rem 0.8rem;
-      border-radius: 20px;
-      border: 1px solid;
-      background: rgba(255, 255, 255, 0.05);
-      font-size: 0.8rem;
-    }
-    .network-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-    .wallets-list {
-      display: grid;
-      gap: 0.8rem;
-      margin: 0.8rem 0;
-    }
-    .wallet-option {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.8rem;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-    }
-    .wallet-icon {
-      font-size: 1.5rem;
-    }
-    .wallet-option small {
-      color: var(--gray);
-      font-size: 0.75rem;
-    }
-    .current-network {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 1.5rem;
-      border-radius: 16px;
-      margin-bottom: 1.5rem;
-    }
-    .network-info {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .network-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: white;
-    }
-    .network-symbol {
-      color: var(--gray);
-      font-size: 0.85rem;
-      margin-left: 0.5rem;
-    }
-    .current-balance {
-      text-align: right;
-    }
-    .balance-amount {
-      font-size: 1.8rem;
-      font-weight: bold;
-      color: var(--secondary);
-      display: block;
-    }
-    .balance-symbol {
-      color: var(--gray);
-      font-size: 0.85rem;
-    }
-    .network-selector {
-      margin-bottom: 1.5rem;
-    }
-    .network-selector label {
-      display: block;
-      margin-bottom: 0.8rem;
-      color: var(--gray);
-      font-size: 0.9rem;
-    }
-    .network-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .network-select-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.8rem;
-      border-radius: 8px;
-      border: 1px solid;
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--light);
-      cursor: pointer;
-      font-size: 0.8rem;
-      transition: all 0.3s;
-    }
-    .network-select-btn:hover, .network-select-btn.active {
-      background: rgba(108, 99, 255, 0.2);
-    }
-    .balance-badge {
-      font-size: 0.7rem;
-      color: var(--secondary);
-      margin-left: 0.3rem;
     }
     .btn-large {
       padding: 1rem 2rem;
@@ -1132,126 +991,41 @@ const HTML_CONTENT = `<!DOCTYPE html>
         </div>\`;
     }
     
-    // Supported Networks Configuration
-    const SUPPORTED_NETWORKS = {
-      'ethereum': {
-        name: 'Ethereum',
-        symbol: 'ETH',
-        chainId: '0x1',
-        rpc: 'https://eth.llamarpc.com',
-        explorer: 'https://etherscan.io',
-        color: '#627EEA'
-      },
-      'polygon': {
-        name: 'Polygon',
-        symbol: 'MATIC',
-        chainId: '0x89',
-        rpc: 'https://polygon-rpc.com',
-        explorer: 'https://polygonscan.com',
-        color: '#8247E5'
-      },
-      'bsc': {
-        name: 'BNB Smart Chain',
-        symbol: 'BNB',
-        chainId: '0x38',
-        rpc: 'https://bsc-dataseed.binance.org',
-        explorer: 'https://bscscan.com',
-        color: '#F3BA2F'
-      },
-      'avalanche': {
-        name: 'Avalanche',
-        symbol: 'AVAX',
-        chainId: '0xa86a',
-        rpc: 'https://api.avax.network/ext/bc/C/rpc',
-        explorer: 'https://snowtrace.io',
-        color: '#E84142'
-      },
-      'arbitrum': {
-        name: 'Arbitrum',
-        symbol: 'ETH',
-        chainId: '0xa4b1',
-        rpc: 'https://arb1.arbitrum.io/rpc',
-        explorer: 'https://arbiscan.io',
-        color: '#28A0F0'
-      },
-      'optimism': {
-        name: 'Optimism',
-        symbol: 'ETH',
-        chainId: '0xa',
-        rpc: 'https://mainnet.optimism.io',
-        explorer: 'https://optimistic.etherscan.io',
-        color: '#FF0420'
-      }
-    };
-    
-    let currentNetwork = 'ethereum';
-    let networkBalances = {};
-    
     function renderWalletDisconnected() {
       const hasWallet = checkWalletInstalled();
-      const networksList = Object.entries(SUPPORTED_NETWORKS).map(([key, net]) => 
-        \`<div class="network-badge" style="border-color: \${net.color};">
-          <span class="network-dot" style="background: \${net.color};"></span>
-          \${net.name} (\${net.symbol})
-        </div>\`
-      ).join('');
-      
       return \`
         <div class="wallet-connect">
           <div class="wallet-connect-icon">🔗</div>
           <h3>Connect Your Wallet</h3>
-          <p>Connect your cryptocurrency wallet to buy, sell, and manage NFTs across multiple blockchains.</p>
+          <p>Connect your cryptocurrency wallet to buy, sell, and manage NFTs on the marketplace.</p>
           
           <div class="wallet-info-card">
-            <h4>💡 What is a Crypto Wallet?</h4>
-            <p>A cryptocurrency wallet is your gateway to the blockchain. It stores your private keys securely and allows you to:</p>
+            <h4>💡 What is a Wallet?</h4>
+            <p>A cryptocurrency wallet is like a digital bank account that allows you to store, send, and receive cryptocurrencies like Ethereum (ETH). It also serves as your identity on the blockchain.</p>
+            
+            <h4>🔒 Why do I need one?</h4>
             <ul>
-              <li><strong>🛒 Buy NFTs:</strong> Use crypto to purchase digital art</li>
-              <li><strong>💰 Sell NFTs:</strong> Receive payments directly to your wallet</li>
-              <li><strong>🔐 Own Your Assets:</strong> Your wallet address proves ownership</li>
-              <li><strong>🌐 Cross-Chain:</strong> Use different blockchains based on fees and speed</li>
+              <li><strong>Buy NFTs:</strong> You'll need ETH to purchase digital art on the marketplace</li>
+              <li><strong>Sell NFTs:</strong> Receive payments directly to your wallet when you sell</li>
+              <li><strong>Verify Ownership:</strong> Your wallet address proves ownership of your NFTs</li>
+              <li><strong>Security:</strong> Your private keys never leave your wallet</li>
             </ul>
             
             <h4>🌐 Supported Networks</h4>
-            <div class="networks-grid">\${networksList}</div>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--gray);">All networks supported directly through your wallet</p>
-            
-            <h4>🐻 Supported Wallets</h4>
-            <div class="wallets-list">
-              <div class="wallet-option">
-                <span class="wallet-icon">🦊</span>
-                <div><strong>MetaMask</strong><br><small>Most popular, browser extension & mobile</small></div>
-              </div>
-              <div class="wallet-option">
-                <span class="wallet-icon">💰</span>
-                <div><strong>Coinbase Wallet</strong><br><small>Backed by Coinbase exchange</small></div>
-              </div>
-              <div class="wallet-option">
-                <span class="wallet-icon">🦁</span>
-                <div><strong>Brave Wallet</strong><br><small>Built into Brave browser</small></div>
-              </div>
-              <div class="wallet-option">
-                <span class="wallet-icon">🔵</span>
-                <div><strong>WalletConnect</strong><br><small>Mobile wallet connection protocol</small></div>
-              </div>
-            </div>
-            
-            <h4>⚡ Why Multiple Networks?</h4>
-            <p>Different blockchains offer different benefits:</p>
-            <ul>
-              <li><strong>Ethereum:</strong> Most NFTs, largest ecosystem</li>
-              <li><strong>Polygon:</strong> Low fees, fast transactions</li>
-              <li><strong>BSC:</strong> Very low fees, popular for trading</li>
-              <li><strong>Avalanche:</strong> Fast & affordable</li>
-              <li><strong>Arbitrum/Optimism:</strong> Layer 2 scaling solutions</li>
-            </ul>
+            <p>Currently supporting <strong>Ethereum Mainnet</strong>. More networks coming soon!</p>
           </div>
           
-          \${!hasWallet ? '<div class="wallet-error">⚠️ No Web3 wallet detected in your browser.</div>' : ''}
+          \${!hasWallet ? '<div class="wallet-error">⚠️ No wallet detected in your browser.</div>' : ''}
           <button class="btn btn-primary btn-large" onclick="\${hasWallet ? 'connectWallet()' : 'installMetaMask()'}">
-            \${hasWallet ? '🔗 Connect Wallet' : '⬇️ Install MetaMask'}
+            \${hasWallet ? '🔗 Connect with MetaMask' : '⬇️ Install MetaMask'}
           </button>
-          \${!hasWallet ? '<p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray);">Click to open MetaMask download page</p>' : ''}
+          \${!hasWallet ? '<p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--gray);">Clicking install will open MetaMask download page</p>' : ''}
+          
+          <div class="wallet-supported">
+            <p style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--gray);">
+              <strong>Supported Wallets:</strong> MetaMask, Coinbase Wallet, Brave Wallet
+            </p>
+          </div>
         </div>\`;
     }
     
@@ -1261,139 +1035,30 @@ const HTML_CONTENT = `<!DOCTYPE html>
       showToast('Opening MetaMask download page...', 'success');
     };
     
-    // Switch network function
-    window.switchNetwork = async function(networkKey) {
-      if (!walletConnected || !window.ethereum) {
-        showToast('Please connect your wallet first', 'error');
-        return;
-      }
-      
-      const network = SUPPORTED_NETWORKS[networkKey];
-      if (!network) {
-        showToast('Network not supported', 'error');
-        return;
-      }
-      
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: network.chainId }]
-        });
-        currentNetwork = networkKey;
-        await fetchMultiChainBalances();
-        render();
-        showToast(\`Switched to \${network.name}\`, 'success');
-      } catch (switchError) {
-        // Network not added to wallet, try to add it
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: network.chainId,
-                chainName: network.name,
-                nativeCurrency: { name: network.symbol, symbol: network.symbol, decimals: 18 },
-                rpcUrls: [network.rpc],
-                blockExplorerUrls: [network.explorer]
-              }]
-            });
-            currentNetwork = networkKey;
-            await fetchMultiChainBalances();
-            render();
-            showToast(\`Added and switched to \${network.name}\`, 'success');
-          } catch (addError) {
-            showToast('Failed to add network', 'error');
-          }
-        } else {
-          showToast('Failed to switch network', 'error');
-        }
-      }
-    };
-    
-    // Fetch balances from multiple chains
-    async function fetchMultiChainBalances() {
-      if (!walletAddress) return;
-      
-      networkBalances = {};
-      
-      for (const [key, network] of Object.entries(SUPPORTED_NETWORKS)) {
-        try {
-          const response = await fetch('/api/wallet/balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ address: walletAddress, network: key })
-          });
-          const data = await response.json();
-          if (data.balance) {
-            networkBalances[key] = parseFloat(data.balance).toFixed(4);
-          }
-        } catch (e) {
-          networkBalances[key] = '0.0000';
-        }
-      }
-    }
-    
     function renderWalletConnected() {
-      const network = SUPPORTED_NETWORKS[currentNetwork];
-      const currentBalance = walletBalance || '0.000000';
-      
-      // Render network selector
-      const networkSelector = Object.entries(SUPPORTED_NETWORKS).map(([key, net]) => 
-        \`<button class="network-select-btn \${currentNetwork === key ? 'active' : ''}" 
-          style="border-color: \${currentNetwork === key ? net.color : 'rgba(255,255,255,0.1)'}"
-          onclick="switchNetwork('\${key}')">
-          <span class="network-dot" style="background: \${net.color};"></span>
-          \${net.name}
-          \${networkBalances[key] ? \`<span class="balance-badge">\${networkBalances[key]} \${net.symbol}</span>\` : ''}
-        </button>\`
-      ).join('');
-      
       return \`
         <div class="wallet-card">
           <div class="wallet-header">
-            <h3>💰 Portfolio Overview</h3>
+            <h3>💰 Wallet Balance</h3>
             <div class="wallet-status">
               <span class="wallet-status-dot connected"></span>
               <span>Connected</span>
             </div>
           </div>
-          
-          <div class="current-network" style="border-left: 4px solid \${network.color};">
-            <div class="network-info">
-              <span class="network-icon" style="background: \${network.color};">\${network.symbol.charAt(0)}</span>
-              <div>
-                <strong>\${network.name}</strong>
-                <span class="network-symbol">\${network.symbol}</span>
-              </div>
-            </div>
-            <div class="current-balance">
-              <span class="balance-amount">\${currentBalance}</span>
-              <span class="balance-symbol">\${network.symbol}</span>
-            </div>
-          </div>
-          
-          <div class="network-selector">
-            <label>🌐 Switch Network:</label>
-            <div class="network-buttons">\${networkSelector}</div>
-          </div>
-          
+          <div class="wallet-balance">\${walletBalance} ETH</div>
+          <div class="wallet-balance-label">Ethereum Mainnet</div>
           <div class="wallet-details">
             <div class="wallet-detail">
-              <div class="detail-label">📍 Wallet Address</div>
-              <div class="detail-value">
-                <a href="\${network.explorer}/address/\${walletAddress}" target="_blank" style="color: var(--primary);">
-                  \${formatAddress(walletAddress)}
-                </a>
-              </div>
+              <div class="wallet-detail-label">Wallet Address</div>
+              <div class="wallet-detail-value">\${formatAddress(walletAddress)}</div>
             </div>
             <div class="wallet-detail">
-              <div class="detail-label">🖼️ NFTs Owned</div>
-              <div class="detail-value">\${userNFTs.length}</div>
+              <div class="wallet-detail-label">NFTs Owned</div>
+              <div class="wallet-detail-value">\${userNFTs.length}</div>
             </div>
           </div>
-          
           <div class="wallet-actions">
-            <button class="btn btn-secondary" onclick="refreshWalletBalance()">🔄 Refresh</button>
+            <button class="btn btn-secondary" onclick="refreshWalletBalance()">🔄 Refresh Balance</button>
             <button class="btn btn-danger" onclick="disconnectWallet()">Disconnect</button>
           </div>
         </div>\`;
@@ -1431,7 +1096,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
           
           // Get real balance
           await fetchWalletBalance();
-          await fetchMultiChainBalances();
           
           // Save to backend
           try {
@@ -1493,7 +1157,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         const response = await fetch('/api/wallet/balance', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: walletAddress, network: currentNetwork })
+          body: JSON.stringify({ address: walletAddress })
         });
         
         const data = await response.json();
@@ -1524,10 +1188,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       
       showToast('Refreshing balance...');
       await fetchWalletBalance();
-      await fetchMultiChainBalances();
-      showToast(\`Balance: \${walletBalance} ETH\`, 'success');
-      render();
-    };
       showToast('Balance: ' + walletBalance + ' ETH', 'success');
       render();
     };
