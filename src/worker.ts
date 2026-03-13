@@ -417,16 +417,25 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
   
   // ==================== AUCTIONS API ====================
   
+  // Helper: Update auction status based on end time
+  function updateAuctionStatus(auction: any): any {
+    const now = Date.now();
+    if (auction.status === 'active' && now > auction.end_time) {
+      return { ...auction, status: 'ended' };
+    }
+    return auction;
+  }
+  
   // GET /api/auctions - List all auctions
   if (path === '/api/auctions' && request.method === 'GET') {
     try {
-      const status = url.searchParams.get('status');
+      const statusFilter = url.searchParams.get('status');
       let query = 'SELECT * FROM auctions';
       const params: any[] = [];
       
-      if (status) {
+      if (statusFilter) {
         query += ' WHERE status = ?';
-        params.push(status);
+        params.push(statusFilter);
       }
       
       query += ' ORDER BY end_time ASC';
@@ -435,26 +444,38 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
       
       try {
         const { results } = await env.DB.prepare(query).bind(...params).run();
-        auctions = results || [];
+        auctions = (results || []).map(updateAuctionStatus);
       } catch (d1Error) {
         console.log('D1 Error fetching auctions, using memory:', d1Error);
       }
       
       // Add in-memory auctions to the list
-      const memoryAuctions = Array.from(auctionsStore.values());
+      const memoryAuctions = Array.from(auctionsStore.values()).map(updateAuctionStatus);
       if (memoryAuctions.length > 0) {
         // Merge, avoiding duplicates by ID
         const existingIds = new Set(auctions.map(a => a.id));
         for (const memAuction of memoryAuctions) {
           if (!existingIds.has(memAuction.id)) {
-            auctions.push(memAuction);
+            // Apply filter if specified
+            if (!statusFilter || memAuction.status === statusFilter) {
+              auctions.push(memAuction);
+            }
           }
         }
       }
       
-      // If still no auctions, return demo data
+      // If still no auctions, return demo data (filtered)
       if (auctions.length === 0) {
-        auctions = getSampleAuctions();
+        let demoAuctions = getSampleAuctions().map(updateAuctionStatus);
+        if (statusFilter && statusFilter !== 'all') {
+          demoAuctions = demoAuctions.filter(a => a.status === statusFilter);
+        }
+        auctions = demoAuctions;
+      }
+      
+      // Apply filter to merged results if not already done
+      if (statusFilter && statusFilter !== 'all') {
+        auctions = auctions.filter(a => a.status === statusFilter);
       }
       
       // Sort by end time
@@ -1773,11 +1794,68 @@ const HTML_CONTENT = `<!DOCTYPE html>
     let auctions = [];
     let currentAuctionFilter = 'all';
     
+    // Check for ended auctions and add NFT to winner's gallery
+    async function checkEndedAuctions() {
+      const now = Date.now();
+      for (const auction of auctions) {
+        if (auction.status === 'active' && now > auction.end_time && auction.highest_bidder_id) {
+          console.log('Auction ended:', auction.id, 'Winner:', auction.highest_bidder_name);
+          
+          // Check if winner is current user
+          const isWinner = sessionUserId && (auction.highest_bidder_id === sessionUserId || auction.highest_bidder_name === user?.username);
+          
+          if (isWinner) {
+            // Add NFT to winner's gallery
+            const wonNFT = {
+              id: 'auction_' + auction.id,
+              name: auction.title,
+              description: auction.description,
+              image: auction.image_url,
+              price: auction.current_price,
+              forSale: false,
+              auction: false,
+              creator: auction.creator_name,
+              owner: user?.username || auction.highest_bidder_name,
+              createdAt: Date.now(),
+              tags: ['auction', 'won'],
+              wonFromAuction: true,
+              auctionId: auction.id
+            };
+            
+            const storedNFTs = JSON.parse(localStorage.getItem('nft_etheroi_nfts') || '[]');
+            
+            // Check if already added
+            const alreadyExists = storedNFTs.some(n => n.auctionId === auction.id);
+            if (!alreadyExists) {
+              storedNFTs.push(wonNFT);
+              localStorage.setItem('nft_etheroi_nfts', JSON.stringify(storedNFTs));
+              userNFTs = storedNFTs;
+              showToast('🎉 You won an auction! Check your gallery!', 'success');
+              renderUserNFTs();
+            }
+          }
+          
+          // Update auction status to ended
+          auction.status = 'ended';
+          
+          // Update in memory store
+          if (auctionsStore.has(auction.id)) {
+            const memAuction = auctionsStore.get(auction.id);
+            memAuction.status = 'ended';
+          }
+        }
+      }
+    }
+    
     async function fetchAuctions() {
       try {
         const status = currentAuctionFilter !== 'all' ? '?status=' + currentAuctionFilter : '';
         const response = await fetch('/api/auctions' + status);
         auctions = await response.json();
+        
+        // Check for ended auctions and add NFT to winner
+        await checkEndedAuctions();
+        
         renderAuctionsList();
       } catch (error) {
         console.error('Error fetching auctions:', error);
@@ -1971,6 +2049,12 @@ const HTML_CONTENT = `<!DOCTYPE html>
       document.getElementById('modalPrice').textContent = '$0 (enter price above)';
       document.getElementById('modalStatus').textContent = 'Creating';
       
+      // Hide the default modal button (we use form submit instead)
+      const modalBtn = document.querySelector('#modal .btn-primary');
+      if (modalBtn) {
+        modalBtn.style.display = 'none';
+      }
+      
       // Update price when user enters it
       setTimeout(() => {
         const priceInput = document.getElementById('auctionStartingPrice');
@@ -2075,8 +2159,33 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     function buyNFT() {
       if (!selectedNFT) return;
-      showToast(\`Purchasing \${selectedNFT.name}...\`, 'success');
-      setTimeout(() => { showToast('NFT acquired!', 'success'); closeModal(); }, 2000);
+      if (!isLoggedIn()) { showToast('Please login first'); return; }
+      
+      const nftToBuy = { ...selectedNFT };
+      
+      // Add to user's gallery
+      nftToBuy.owner = user?.username || walletAddress || 'You';
+      nftToBuy.forSale = false;
+      nftToBuy.auction = false;
+      
+      // Save to user NFTs
+      const storedNFTs = JSON.parse(localStorage.getItem('nft_etheroi_nfts') || '[]');
+      storedNFTs.push(nftToBuy);
+      localStorage.setItem('nft_etheroi_nfts', JSON.stringify(storedNFTs));
+      userNFTs = storedNFTs;
+      
+      // Remove from marketplace (mark as not for sale)
+      nfts = nfts.map(nft => {
+        if (nft.id === nftToBuy.id) {
+          return { ...nft, forSale: false };
+        }
+        return nft;
+      });
+      
+      showToast('🎉 NFT acquired! Check your gallery.', 'success');
+      closeModal();
+      renderUserNFTs();
+      renderNFTs();
     }
     
     // Create NFT form
