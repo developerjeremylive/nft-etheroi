@@ -1404,53 +1404,39 @@ const HTML_CONTENT = `<!DOCTYPE html>
   <footer>
     <div class="footer-content">
       <div class="footer-section">
-        <h4>NFT.etheroi</h4>
-        <p>The next-generation marketplace for digital creators. Buy, sell, and auction unique digital art secured by blockchain.</p>
+        <h4>🚀 NFT.etheroi</h4>
+        <p>The next-generation marketplace for digital creators. Buy, sell, and auction unique digital art secured by blockchain technology.</p>
         <div style="margin-top: 1rem;">
-          <a href="https://etheroi.com" target="_blank" style="display: inline-block; padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary), #8b5cf6); border-radius: 8px; color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600;">🌐 etheroi.com</a>
+          <a href="https://etheroi.com" target="_blank" style="display: inline-block; padding: 0.6rem 1.2rem; background: linear-gradient(135deg, var(--primary), #8b5cf6); border-radius: 25px; color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);">✨ Explore AI Products</a>
         </div>
       </div>
       <div class="footer-section">
-        <h4>Marketplace</h4>
-        <a href="#" onclick="navigate('marketplace')">Browse NFTs</a>
-        <a href="#" onclick="navigate('auctions')">Live Auctions</a>
-        <a href="#">Trending</a>
-        <a href="#">New Arrivals</a>
+        <h4>🛒 Explore</h4>
+        <span style="color: var(--gray); font-size: 0.9rem;">Discover unique digital art from creators worldwide</span>
       </div>
       <div class="footer-section">
-        <h4>Create</h4>
-        <a href="#" onclick="navigate('create')">Create NFT</a>
-        <a href="#" onclick="navigate('auctions')">Start Auction</a>
-        <a href="#">Minting Guide</a>
+        <h4>🎨 Create</h4>
+        <span style="color: var(--gray); font-size: 0.9rem;">Mint your own NFTs and start selling in minutes</span>
       </div>
       <div class="footer-section">
-        <h4>Creator</h4>
-        <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a>
-        <a href="https://jeremylive.netlify.app" target="_blank">Portfolio</a>
-        <a href="https://jeremylive.netlify.app" target="_blank">Other Projects</a>
-        <a href="https://etheroi.com" target="_blank">AI Products</a>
+        <h4>🔨 Auctions</h4>
+        <span style="color: var(--gray); font-size: 0.9rem;">Bid on exclusive pieces and collect rare digital art</span>
       </div>
       <div class="footer-section">
-        <h4>Support</h4>
-        <a href="#">Help Center</a>
-        <a href="#">Platform Status</a>
-        <a href="#">Contact Us</a>
+        <h4>👨‍💻 Creator</h4>
+        <span style="color: var(--gray); font-size: 0.9rem;">Built by <a href="https://jeremylive.netlify.app" target="_blank" style="color: var(--primary);">Jeremy Live</a> — Full Stack Developer & AI Enthusiast</span>
       </div>
     </div>
     <div class="footer-bottom">
-      <div class="footer-logo">NFT<span>.etheroi</span></div>
+      <div class="footer-logo">NFT<span>.etheroi</span> ⚡</div>
       <div class="footer-links">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Cookie Policy</a>
+        <span style="color: var(--gray); font-size: 0.85rem;">Powered by Cloudflare Workers + D1</span>
       </div>
       <div class="footer-social">
-        <a href="https://twitter.com" target="_blank" title="Twitter/X">𝕏</a>
-        <a href="https://discord.com" target="_blank" title="Discord">👾</a>
-        <a href="https://telegram.org" target="_blank" title="Telegram">✈</a>
+        <a href="https://www.linkedin.com/in/jeremy-live/" target="_blank" title="LinkedIn" style="font-size: 1.1rem;">💼</a>
       </div>
     </div>
-    <p style="margin-top: 2rem; font-size: 0.8rem;">&copy; 2026 <a href="https://jeremylive.netlify.app" target="_blank" style="color: var(--primary);">Jeremy Live</a>. Built on blockchain technology. All rights reserved.</p>
+    <p style="margin-top: 2rem; font-size: 0.8rem; color: var(--gray);">🌟 Built with ❤️ by <a href="https://jeremylive.netlify.app" target="_blank" style="color: var(--primary);">Jeremy Live</a> — 2026 — <a href="https://etheroi.com" target="_blank" style="color: var(--secondary);">etheroi.com</a></p>
   </footer>
   
   <div class="modal-overlay" id="modal">
