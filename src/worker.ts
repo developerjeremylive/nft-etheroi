@@ -1020,6 +1020,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     .section-title { font-size: 2rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; }
     .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--primary), transparent); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .section-header .section-title { margin-bottom: 0; }
+    .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 1rem; font-weight: 500; transition: color 0.3s; }
+    .btn-link:hover { color: var(--secondary); }
     
     .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; padding: 4rem 0; }
     .feature-card { background: rgba(255, 255, 255, 0.03); border-radius: 20px; padding: 2rem; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s; }
@@ -1413,6 +1417,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
         case 'home':
           app.innerHTML = renderHome();
           fetchNFTs();
+          fetchAuctions();
+          renderHomeSections();
           break;
         case 'marketplace':
           app.innerHTML = renderMarketplace();
@@ -1446,16 +1452,33 @@ const HTML_CONTENT = `<!DOCTYPE html>
           </div>
         </section>
         <section>
-          <h2 class="section-title">Featured NFTs</h2>
+          <div class="section-header">
+            <h2 class="section-title">Featured NFTs</h2>
+            <button class="btn-link" onclick="navigate('marketplace')">View All →</button>
+          </div>
           <div class="nft-grid" id="featuredGrid"></div>
+        </section>
+        <section>
+          <div class="section-header">
+            <h2 class="section-title">🔨 Live Auctions</h2>
+            <button class="btn-link" onclick="navigate('auctions')">View All →</button>
+          </div>
+          <div class="auction-grid" id="homeAuctionsGrid"></div>
+        </section>
+        <section class="protected">
+          <div class="section-header">
+            <h2 class="section-title">🖼️ Your Gallery</h2>
+            <button class="btn-link" onclick="navigate('gallery')">View All →</button>
+          </div>
+          <div class="nft-grid" id="homeGalleryGrid"></div>
         </section>
         <section>
           <h2 class="section-title">Platform Features</h2>
           <div class="features">
-            <div class="feature-card"><div class="feature-icon">🎨</div><h3>Create NFTs</h3><p>Upload your artwork and convert it into unique digital tokens</p></div>
-            <div class="feature-card"><div class="feature-icon">🛒</div><h3>Marketplace</h3><p>Buy and sell NFTs in our secure marketplace</p></div>
-            <div class="feature-card"><div class="feature-icon">🔨</div><h3>Auctions</h3><p>Participate in auctions for exclusive digital pieces</p></div>
-            <div class="feature-card"><div class="feature-icon">🖼️</div><h3>Galleries</h3><p>Showcase your collection in virtual galleries</p></div>
+            <div class="feature-card" onclick="navigate('create')"><div class="feature-icon">🎨</div><h3>Create NFTs</h3><p>Upload your artwork and convert it into unique digital tokens</p></div>
+            <div class="feature-card" onclick="navigate('marketplace')"><div class="feature-icon">🛒</div><h3>Marketplace</h3><p>Buy and sell NFTs in our secure marketplace</p></div>
+            <div class="feature-card" onclick="navigate('auctions')"><div class="feature-icon">🔨</div><h3>Auctions</h3><p>Participate in auctions for exclusive digital pieces</p></div>
+            <div class="feature-card" onclick="navigate('gallery')"><div class="feature-icon">🖼️</div><h3>Galleries</h3><p>Showcase your collection in virtual galleries</p></div>
           </div>
         </section>\`;
     }
@@ -1862,6 +1885,28 @@ const HTML_CONTENT = `<!DOCTYPE html>
         renderAuctionsList();
       } catch (error) {
         console.error('Error fetching auctions:', error);
+      }
+    }
+    
+    // Render auctions and gallery on home page
+    function renderHomeSections() {
+      // Render auctions on home
+      const homeAuctionsGrid = document.getElementById('homeAuctionsGrid');
+      if (homeAuctionsGrid && auctions.length > 0) {
+        const activeAuctions = auctions.filter(a => a.status === 'active').slice(0, 3);
+        homeAuctionsGrid.innerHTML = activeAuctions.map(a => createAuctionCard(a)).join('');
+      } else if (homeAuctionsGrid) {
+        homeAuctionsGrid.innerHTML = '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No active auctions</p>';
+      }
+      
+      // Render gallery on home (only if logged in)
+      const homeGalleryGrid = document.getElementById('homeGalleryGrid');
+      if (homeGalleryGrid) {
+        if (userNFTs.length > 0) {
+          homeGalleryGrid.innerHTML = userNFTs.slice(0, 4).map(nft => createNFTCard(nft, true)).join('');
+        } else {
+          homeGalleryGrid.innerHTML = '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No NFTs in gallery yet</p>';
+        }
       }
     }
     
