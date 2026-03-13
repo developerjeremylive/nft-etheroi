@@ -1227,28 +1227,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
       align-items: flex-start;
     }
     .landing-overlay.hidden { display: none; }
-    .landing-close {
-      position: fixed;
-      top: 1.5rem;
-      right: 1.5rem;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      font-size: 1.5rem;
-      cursor: pointer;
-      z-index: 601;
-      transition: all 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .landing-close:hover {
-      background: var(--primary);
-      transform: rotate(90deg);
-    }
     .landing-modal-content {
       max-width: 100%;
       width: 100%;
@@ -1779,7 +1757,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
   
   <!-- Landing Page Modal -->
   <div class="landing-overlay" id="landingOverlay">
-    <button class="landing-close" onclick="closeLandingPage()">✕</button>
     <div class="landing-modal-content" id="landingContent"></div>
   </div>
   
@@ -2043,11 +2020,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
     function render() {
       const app = document.getElementById('app');
       const landingOverlay = document.getElementById('landingOverlay');
+      const authOverlay = document.getElementById('authOverlay');
       
-      // Show landing page as modal for non-authenticated users on home
+      // Hide auth overlay by default
+      if (authOverlay) authOverlay.classList.add('hidden');
+      
+      // Show landing page as modal for non-authenticated users on home only
       if (currentPage === 'home' && !user) {
         app.innerHTML = renderEmptyHome();
-        // Show landing modal
         if (landingOverlay) {
           document.getElementById('landingContent').innerHTML = renderLandingPage();
           landingOverlay.classList.remove('hidden');
@@ -2055,7 +2035,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         return;
       }
       
-      // Hide landing modal when authenticated
+      // Hide landing modal when authenticated or not on home
       if (landingOverlay) {
         landingOverlay.classList.add('hidden');
       }
@@ -2208,33 +2188,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
       return \`<div style="min-height: 100vh;"></div>\`;
     }
     
-    // Close landing page and show auth modal
-    window.closeLandingPage = function() {
-      const landingOverlay = document.getElementById('landingOverlay');
-      if (landingOverlay) {
-        landingOverlay.classList.add('hidden');
-      }
-      // Show auth modal with darkened background
-      const authOverlay = document.getElementById('authOverlay');
-      if (authOverlay) {
-        authOverlay.classList.remove('hidden');
-      }
-      // Darken entire page
-      document.body.style.overflow = 'hidden';
-    };
-    
-    // Open auth modal from landing page
+    // Open auth modal from landing page (keep landing visible behind)
     window.openAuthModal = function() {
-      // Close landing modal first
-      const landingOverlay = document.getElementById('landingOverlay');
-      if (landingOverlay) landingOverlay.classList.add('hidden');
-      // Show auth modal
+      // Keep landing modal visible, just show auth on top
       const overlay = document.getElementById('authOverlay');
       if (overlay) {
         overlay.classList.remove('hidden');
       }
-      // Darken entire page
-      document.body.style.overflow = 'hidden';
+      // Allow scroll when modal is open
+      document.body.style.overflow = 'auto';
     };
     
     function renderHome() {
