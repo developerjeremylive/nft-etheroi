@@ -1466,7 +1466,6 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <div class="filters">
           <button class="filter-btn active" data-filter="all">All</button>
           <button class="filter-btn" data-filter="sale">For Sale</button>
-          <button class="filter-btn" data-filter="purchased">Purchased</button>
         </div>
         <div class="nft-grid" id="marketplaceGrid"></div>\`;
     }
@@ -2115,19 +2114,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
       // Get purchased NFT IDs
       const purchasedIds = new Set(userNFTs.map(n => n.id));
       
-      // Available NFTs: not purchased AND not auction (exclude auction NFTs from marketplace)
+      // Available NFTs: not purchased AND not auction
       const availableNFTs = nfts.filter(nft => !purchasedIds.has(nft.id) && !nft.auction);
       
       let filteredNFTs = [];
       
-      if (currentFilter === 'all') {
-        // Show both: For Sale (available) + Purchased (user's) - NO auctions
-        const forSaleNFTs = availableNFTs.filter(nft => nft.forSale);
-        filteredNFTs = [...forSaleNFTs, ...userNFTs];
-      } else if (currentFilter === 'sale') {
+      if (currentFilter === 'all' || currentFilter === 'sale') {
+        // Show only For Sale NFTs (no purchased in marketplace)
         filteredNFTs = availableNFTs.filter(nft => nft.forSale);
-      } else if (currentFilter === 'purchased') {
-        filteredNFTs = userNFTs;
       }
       
       const nftCards = filteredNFTs.map(nft => createNFTCard(nft)).join('');
@@ -2135,7 +2129,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       // Featured shows only available NFTs for sale
       if (featuredGrid) featuredGrid.innerHTML = availableNFTs.filter(n => n.forSale).slice(0, 4).map(nft => createNFTCard(nft)).join('');
       if (marketplaceGrid) {
-        marketplaceGrid.innerHTML = filteredNFTs.length ? nftCards : '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No NFTs found</p>';
+        marketplaceGrid.innerHTML = filteredNFTs.length ? nftCards : '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No NFTs for sale</p>';
       }
     }
     
