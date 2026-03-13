@@ -59,6 +59,37 @@ export default {
 // In-memory session store
 const sessions: Map<string, { userId: string; walletAddress: string; expires: number }> = new Map();
 
+// In-memory auction store (fallback when D1 unavailable)
+interface Auction {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  starting_price: number;
+  current_price: number;
+  highest_bidder_id: string | null;
+  highest_bidder_name: string | null;
+  creator_id: string;
+  creator_name: string;
+  start_time: number;
+  end_time: number;
+  status: string;
+  bid_count: number;
+  created_at: number;
+}
+
+interface Bid {
+  id: string;
+  auction_id: string;
+  bidder_id: string;
+  bidder_name: string;
+  amount: number;
+  timestamp: number;
+}
+
+const auctionsStore: Map<string, Auction> = new Map();
+const bidsStore: Map<string, Bid[]> = new Map();
+
 function createSession(userId: string, walletAddress: string = ''): string {
   const sessionId = crypto.randomUUID();
   sessions.set(sessionId, { userId, walletAddress, expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
@@ -400,15 +431,39 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
       
       query += ' ORDER BY end_time ASC';
       
+      let auctions: any[] = [];
+      
       try {
         const { results } = await env.DB.prepare(query).bind(...params).run();
-        return new Response(JSON.stringify(results || []), { headers });
+        auctions = results || [];
       } catch (d1Error) {
-        // Return demo data if D1 fails
-        return new Response(JSON.stringify(getSampleAuctions()), { headers });
+        console.log('D1 Error fetching auctions, using memory:', d1Error);
       }
-    } catch {
-      return new Response(JSON.stringify({ error: 'Failed to fetch auctions' }), { status: 500, headers });
+      
+      // Add in-memory auctions to the list
+      const memoryAuctions = Array.from(auctionsStore.values());
+      if (memoryAuctions.length > 0) {
+        // Merge, avoiding duplicates by ID
+        const existingIds = new Set(auctions.map(a => a.id));
+        for (const memAuction of memoryAuctions) {
+          if (!existingIds.has(memAuction.id)) {
+            auctions.push(memAuction);
+          }
+        }
+      }
+      
+      // If still no auctions, return demo data
+      if (auctions.length === 0) {
+        auctions = getSampleAuctions();
+      }
+      
+      // Sort by end time
+      auctions.sort((a, b) => a.end_time - b.end_time);
+      
+      return new Response(JSON.stringify(auctions), { headers });
+    } catch (err) {
+      console.error('Error fetching auctions:', err);
+      return new Response(JSON.stringify(getSampleAuctions()), { headers });
     }
   }
   
@@ -442,7 +497,7 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
         if (user) creatorName = user.username;
       } catch {}
       
-      const auction = {
+      const auction: Auction = {
         id: auctionId,
         title: body.title,
         description: body.description || '',
@@ -460,6 +515,8 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
         created_at: now
       };
       
+      // Try to save to D1 first
+      let d1Success = false;
       try {
         await env.DB.prepare(`
           INSERT INTO auctions (id, title, description, image_url, starting_price, current_price, highest_bidder_id, highest_bidder_name, creator_id, creator_name, start_time, end_time, status, bid_count, created_at)
@@ -471,12 +528,24 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
           auction.start_time, auction.end_time, auction.status, auction.bid_count,
           auction.created_at
         ).run();
+        d1Success = true;
       } catch (d1Error) {
-        console.log('D1 Error creating auction:', d1Error);
+        console.log('D1 Error creating auction, using in-memory store:', d1Error);
       }
       
-      return new Response(JSON.stringify(auction), { status: 201, headers });
-    } catch {
+      // Always save to in-memory store as backup
+      auctionsStore.set(auctionId, auction);
+      bidsStore.set(auctionId, []);
+      
+      console.log('Auction created:', auctionId, 'D1:', d1Success, 'Memory:', auctionsStore.has(auctionId));
+      
+      return new Response(JSON.stringify({ 
+        success: true,
+        auction: auction,
+        storage: d1Success ? 'd1' : 'memory'
+      }), { status: 201, headers });
+    } catch (err) {
+      console.error('Error creating auction:', err);
       return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
     }
   }
@@ -486,27 +555,51 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
   if (auctionMatch && request.method === 'GET') {
     const auctionId = auctionMatch[1];
     
+    let auction: any = null;
+    
+    // Try D1 first
     try {
-      const auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(auctionId).first();
-      if (!auction) {
-        // Return demo auction
-        const demoAuctions = getSampleAuctions();
-        const demo = demoAuctions.find(a => a.id === auctionId);
-        if (demo) return new Response(JSON.stringify(demo), { headers });
-        return new Response(JSON.stringify({ error: 'Auction not found' }), { status: 404, headers });
-      }
-      
-      // Get bids for this auction
-      let bids: any[] = [];
-      try {
-        const { results } = await env.DB.prepare('SELECT * FROM bids WHERE auction_id = ? ORDER BY amount DESC').bind(auctionId).run();
-        bids = results || [];
-      } catch {}
-      
-      return new Response(JSON.stringify({ ...auction, bids }), { headers });
-    } catch {
-      return new Response(JSON.stringify({ error: 'Failed to fetch auction' }), { status: 500, headers });
+      auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(auctionId).first();
+    } catch (d1Error) {
+      console.log('D1 Error fetching auction:', d1Error);
     }
+    
+    // If not in D1, check memory store
+    if (!auction) {
+      auction = auctionsStore.get(auctionId);
+    }
+    
+    // If still not found, check demo auctions
+    if (!auction) {
+      const demoAuctions = getSampleAuctions();
+      const demo = demoAuctions.find(a => a.id === auctionId);
+      if (demo) return new Response(JSON.stringify(demo), { headers });
+      return new Response(JSON.stringify({ error: 'Auction not found' }), { status: 404, headers });
+    }
+    
+    // Get bids for this auction
+    let bids: any[] = [];
+    
+    // Try D1 first
+    try {
+      const { results } = await env.DB.prepare('SELECT * FROM bids WHERE auction_id = ? ORDER BY amount DESC').bind(auctionId).run();
+      bids = results || [];
+    } catch {}
+    
+    // Add memory bids
+    const memoryBids = bidsStore.get(auctionId) || [];
+    if (memoryBids.length > 0) {
+      const existingIds = new Set(bids.map(b => b.id));
+      for (const memBid of memoryBids) {
+        if (!existingIds.has(memBid.id)) {
+          bids.push(memBid);
+        }
+      }
+      // Sort by amount descending
+      bids.sort((a, b) => b.amount - a.amount);
+    }
+    
+    return new Response(JSON.stringify({ ...auction, bids }), { headers });
   }
   
   // POST /api/auctions/:id/bid - Place a bid
@@ -526,11 +619,15 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
         return new Response(JSON.stringify({ error: 'Valid amount required' }), { status: 400, headers });
       }
       
-      // Get current auction
-      let auction: any;
+      // Get current auction - try D1 first, then memory, then demo
+      let auction: any = null;
       try {
         auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(auctionId).first();
       } catch {}
+      
+      if (!auction) {
+        auction = auctionsStore.get(auctionId);
+      }
       
       if (!auction) {
         // Check demo auctions
@@ -559,7 +656,7 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
       } catch {}
       
       const bidId = crypto.randomUUID();
-      const bid = {
+      const bid: Bid = {
         id: bidId,
         auction_id: auctionId,
         bidder_id: sessionUserId,
@@ -568,23 +665,41 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
         timestamp: Date.now()
       };
       
-      // Save bid
+      // Save bid to D1 and memory
       try {
         await env.DB.prepare(`
           INSERT INTO bids (id, auction_id, bidder_id, bidder_name, amount, timestamp)
           VALUES (?, ?, ?, ?, ?, ?)
         `).bind(bid.id, bid.auction_id, bid.bidder_id, bid.bidder_name, bid.amount, bid.timestamp).run();
         
-        // Update auction
+        // Update auction in D1
         await env.DB.prepare(`
           UPDATE auctions SET current_price = ?, highest_bidder_id = ?, highest_bidder_name = ?, bid_count = bid_count + 1 WHERE id = ?
         `).bind(amount, sessionUserId, bidderName, auctionId).run();
       } catch (d1Error) {
-        console.log('D1 Error placing bid:', d1Error);
+        console.log('D1 Error placing bid, using memory:', d1Error);
       }
       
-      return new Response(JSON.stringify({ bid, auction: { ...auction, current_price: amount, highest_bidder_id: sessionUserId, highest_bidder_name: bidderName } }), { headers });
-    } catch {
+      // Always update in-memory store
+      const existingBids = bidsStore.get(auctionId) || [];
+      existingBids.push(bid);
+      bidsStore.set(auctionId, existingBids);
+      
+      // Update auction in memory
+      if (auctionsStore.has(auctionId)) {
+        const memAuction = auctionsStore.get(auctionId)!;
+        memAuction.current_price = amount;
+        memAuction.highest_bidder_id = sessionUserId;
+        memAuction.highest_bidder_name = bidderName;
+        memAuction.bid_count = (memAuction.bid_count || 0) + 1;
+      }
+      
+      return new Response(JSON.stringify({ 
+        bid, 
+        auction: { ...auction, current_price: amount, highest_bidder_id: sessionUserId, highest_bidder_name: bidderName } 
+      }), { headers });
+    } catch (err) {
+      console.error('Error placing bid:', err);
       return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400, headers });
     }
   }
@@ -597,23 +712,59 @@ async function handleAPI(request: Request, url: URL, env: Env): Promise<Response
     
     try {
       let bids: any[] = [];
+      
+      // Get D1 bids
       try {
         const { results } = await env.DB.prepare('SELECT * FROM bids WHERE bidder_id = ? ORDER BY timestamp DESC').bind(sessionUserId).run();
         bids = results || [];
       } catch {}
       
+      // Get memory bids
+      const memoryBids: any[] = [];
+      for (const [auctionId, auctionBids] of bidsStore) {
+        for (const bid of auctionBids) {
+          if (bid.bidder_id === sessionUserId) {
+            memoryBids.push(bid);
+          }
+        }
+      }
+      
+      // Merge bids, avoiding duplicates
+      const existingIds = new Set(bids.map(b => b.id));
+      for (const memBid of memoryBids) {
+        if (!existingIds.has(memBid.id)) {
+          bids.push(memBid);
+        }
+      }
+      
+      // Sort by timestamp descending
+      bids.sort((a, b) => b.timestamp - a.timestamp);
+      
       // Enrich with auction data
       const enrichedBids = await Promise.all(bids.map(async (bid: any) => {
+        // Try D1 first
+        let auction: any = null;
         try {
-          const auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(bid.auction_id).first();
-          return { ...bid, auction };
-        } catch {
-          return { ...bid, auction: null };
+          auction = await env.DB.prepare('SELECT * FROM auctions WHERE id = ?').bind(bid.auction_id).first();
+        } catch {}
+        
+        // Try memory if not found
+        if (!auction) {
+          auction = auctionsStore.get(bid.auction_id);
         }
+        
+        // Try demo if still not found
+        if (!auction) {
+          const demoAuctions = getSampleAuctions();
+          auction = demoAuctions.find(a => a.id === bid.auction_id);
+        }
+        
+        return { ...bid, auction };
       }));
       
       return new Response(JSON.stringify(enrichedBids), { headers });
-    } catch {
+    } catch (err) {
+      console.error('Error fetching user bids:', err);
       return new Response(JSON.stringify({ error: 'Failed to fetch bids' }), { status: 500, headers });
     }
   }
