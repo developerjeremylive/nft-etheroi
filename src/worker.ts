@@ -1479,30 +1479,35 @@ const HTML_CONTENT = `<!DOCTYPE html>
       padding: 1.2rem 3rem;
       font-size: 1.15rem;
     }
-    .hero-stats {
+    .hero-value {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 2rem;
       flex-wrap: wrap;
+      margin-top: 2rem;
     }
-    .stat-divider {
-      width: 1px;
-      height: 40px;
-      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.5), transparent);
+    .value-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      background: rgba(108, 99, 255, 0.1);
+      border: 1px solid rgba(108, 99, 255, 0.2);
+      border-radius: 50px;
+      transition: all 0.3s;
     }
-    .stat-item {
-      text-align: center;
+    .value-item:hover {
+      background: rgba(108, 99, 255, 0.2);
+      transform: translateY(-2px);
     }
-    .stat-number {
-      display: block;
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: white;
+    .value-icon {
+      font-size: 1.2rem;
     }
-    .stat-label {
+    .value-text {
+      color: rgba(255, 255, 255, 0.9);
       font-size: 0.9rem;
-      color: var(--gray);
+      font-weight: 500;
     }
     
     .landing-features {
@@ -1539,6 +1544,20 @@ const HTML_CONTENT = `<!DOCTYPE html>
       transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       position: relative;
       overflow: hidden;
+    }
+    .feature-glow {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(108, 99, 255, 0.1) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s;
+      pointer-events: none;
+    }
+    .feature-card-large:hover .feature-glow {
+      opacity: 1;
     }
     .feature-card-large::before {
       content: '';
@@ -1704,8 +1723,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     @media (max-width: 768px) {
       .landing-hero h1 { font-size: 2.5rem; }
-      .hero-stats { gap: 2rem; }
-      .stat-number { font-size: 2rem; }
+      .hero-value { gap: 1rem; }
+      .value-item { padding: 0.5rem 1rem; }
       .features-grid { grid-template-columns: 1fr; }
       .steps-container { flex-direction: column; }
       .step-connector { display: none; }
@@ -2079,21 +2098,32 @@ const HTML_CONTENT = `<!DOCTYPE html>
             <div class="hero-content">
               <div class="hero-badge">
                 <span class="pulse-dot"></span>
-                Powered by Cloudflare Workers
+                Powered by Cloudflare Workers + D1
               </div>
               <h1>The Future of <br><span class="gradient-text">Digital Art</span></h1>
               <p class="hero-subtitle">Create, collect, and trade unique digital artworks on the next-generation NFT marketplace. Secured by blockchain, powered by AI.</p>
               <div class="hero-cta">
                 <button class="btn btn-primary btn-large btn-glow" onclick="openAuthModal()">
-                  <span class="btn-icon">✨</span> Get Started
+                  <span class="btn-icon">✨</span> Get Started — Free
                 </button>
               </div>
-              <div class="hero-stats">
-                <div class="stat-item"><span class="stat-number">10K+</span><span class="stat-label">Digital Artworks</span></div>
-                <div class="stat-divider"></div>
-                <div class="stat-item"><span class="stat-number">5K+</span><span class="stat-label">Active Collectors</span></div>
-                <div class="stat-divider"></div>
-                <div class="stat-item"><span class="stat-number">50+</span><span class="stat-label">AI Artists</span></div>
+              <div class="hero-value">
+                <div class="value-item">
+                  <span class="value-icon">🔒</span>
+                  <span class="value-text">Secure Ownership</span>
+                </div>
+                <div class="value-item">
+                  <span class="value-icon">⚡</span>
+                  <span class="value-text">Instant Transactions</span>
+                </div>
+                <div class="value-item">
+                  <span class="value-icon">🌐</span>
+                  <span class="value-text">Global Marketplace</span>
+                </div>
+                <div class="value-item">
+                  <span class="value-icon">🤖</span>
+                  <span class="value-text">AI Integration</span>
+                </div>
               </div>
             </div>
           </section>
@@ -2103,31 +2133,37 @@ const HTML_CONTENT = `<!DOCTYPE html>
             <h2 class="section-title">Why Choose <span class="gradient-text">NFT.etheroi</span>?</h2>
             <div class="features-grid">
               <div class="feature-card-large">
+                <div class="feature-glow"></div>
                 <div class="feature-icon-large">🔐</div>
                 <h3>Secure Blockchain</h3>
                 <p>Every NFT is secured by Ethereum blockchain technology. Your digital assets are safe, transparent, and truly yours.</p>
               </div>
               <div class="feature-card-large">
+                <div class="feature-glow"></div>
                 <div class="feature-icon-large">⚡</div>
                 <h3>Lightning Fast</h3>
                 <p>Built on Cloudflare Workers for sub-second transactions. No more waiting — trade instantly with zero friction.</p>
               </div>
               <div class="feature-card-large">
+                <div class="feature-glow"></div>
                 <div class="feature-icon-large">🤖</div>
                 <h3>AI-Powered</h3>
                 <p>Create unique digital art with AI tools. Integrate with etheroi.com for cutting-edge AI generation features.</p>
               </div>
               <div class="feature-card-large">
+                <div class="feature-glow"></div>
                 <div class="feature-icon-large">🔨</div>
                 <h3>Live Auctions</h3>
                 <p>Participate in exciting auctions for exclusive digital pieces. Bid, win, and expand your collection.</p>
               </div>
               <div class="feature-card-large">
+                <div class="feature-glow"></div>
                 <div class="feature-icon-large">🎨</div>
                 <h3>Easy Creation</h3>
                 <p>Mint your own NFTs in minutes. No coding required — just upload, describe, and start selling.</p>
               </div>
               <div class="feature-card-large">
+                <div class="feature-glow"></div>
                 <div class="feature-icon-large">🌐</div>
                 <h3>Global Community</h3>
                 <p>Join thousands of creators and collectors from around the world. Share, trade, and grow together.</p>
