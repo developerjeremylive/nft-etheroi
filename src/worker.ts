@@ -961,11 +961,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     header { background: rgba(26, 26, 46, 0.9); backdrop-filter: blur(20px); padding: 1rem 2rem; position: fixed; top: 0; left: 0; right: 0; z-index: 100; border-bottom: 1px solid rgba(108, 99, 255, 0.2); }
     .header-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .logo { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-decoration: none; cursor: pointer; transition: transform 0.2s; }
+    .logo:hover { transform: scale(1.05); }
     .logo span { font-weight: 300; }
-    nav { display: flex; gap: 1.5rem; align-items: center; }
-    nav a { color: var(--gray); text-decoration: none; font-weight: 500; transition: color 0.3s; padding: 0.5rem 0; }
-    nav a:hover, nav a.active { color: var(--primary); }
+    nav { display: flex; gap: 1rem; align-items: center; }
+    nav a { color: var(--gray); text-decoration: none; font-weight: 500; transition: color 0.3s; padding: 0.5rem 0.75rem; border-radius: 8px; }
+    nav a:hover, nav a.active { color: var(--primary); background: rgba(108, 99, 255, 0.1); }
+    nav .nav-dropdown { font-size: 0.7rem; margin-left: 4px; }
+    #createBtn { padding: 0.5rem 1rem; font-size: 0.9rem; }
     nav .hidden { display: none !important; }
     
     .btn { padding: 0.6rem 1.5rem; border-radius: 50px; border: none; font-weight: 600; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; }
@@ -1211,14 +1214,15 @@ const HTML_CONTENT = `<!DOCTYPE html>
   
   <header>
     <div class="header-content">
-      <div class="logo">NFT<span>.etheroi</span></div>
+      <a href="#" class="logo" onclick="navigate('home'); return false;">NFT<span>.etheroi</span></a>
       <nav>
-        <a href="#" class="active" data-page="home">Home</a>
         <a href="#" data-page="marketplace">Marketplace</a>
         <a href="#" data-page="auctions">Auctions</a>
-        <a href="#" data-page="create" class="protected hidden">Create</a>
-        <a href="#" data-page="gallery" class="protected hidden">Gallery</a>
-        <a href="#" data-page="profile" class="protected hidden">Profile</a>
+        <a href="#" data-page="gallery" class="protected hidden">
+          <span>Gallery</span>
+          <span class="nav-dropdown">▼</span>
+        </a>
+        <button class="btn btn-primary protected hidden" id="createBtn" onclick="navigate('create')">+ Create</button>
         <button class="btn btn-primary" id="authBtn">Sign In</button>
         <button class="btn btn-danger hidden" id="logoutBtn">Logout</button>
       </nav>
@@ -1462,7 +1466,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <div class="filters">
           <button class="filter-btn active" data-filter="all">All</button>
           <button class="filter-btn" data-filter="sale">For Sale</button>
-          <button class="filter-btn" data-filter="auction">Auctions</button>
+          <button class="filter-btn" data-filter="purchased">Purchased</button>
         </div>
         <div class="nft-grid" id="marketplaceGrid"></div>\`;
     }
@@ -2108,13 +2112,17 @@ const HTML_CONTENT = `<!DOCTYPE html>
       const featuredGrid = document.getElementById('featuredGrid');
       const marketplaceGrid = document.getElementById('marketplaceGrid');
       
-      let filteredNFTs = nfts;
-      if (currentFilter === 'sale') filteredNFTs = nfts.filter(nft => nft.forSale && !nft.auction);
-      else if (currentFilter === 'auction') filteredNFTs = nfts.filter(nft => nft.auction);
+      // Filter: show only NFTs not in user's gallery (not purchased)
+      const purchasedIds = new Set(userNFTs.map(n => n.id));
+      const availableNFTs = nfts.filter(nft => !purchasedIds.has(nft.id));
+      
+      let filteredNFTs = availableNFTs;
+      if (currentFilter === 'sale') filteredNFTs = availableNFTs.filter(nft => nft.forSale && !nft.auction);
+      else if (currentFilter === 'purchased') filteredNFTs = userNFTs;
       
       const nftCards = filteredNFTs.map(nft => createNFTCard(nft)).join('');
       
-      if (featuredGrid) featuredGrid.innerHTML = nfts.slice(0, 4).map(nft => createNFTCard(nft)).join('');
+      if (featuredGrid) featuredGrid.innerHTML = availableNFTs.slice(0, 4).map(nft => createNFTCard(nft)).join('');
       if (marketplaceGrid) {
         marketplaceGrid.innerHTML = filteredNFTs.length ? nftCards : '<p style="color: var(--gray); grid-column: 1/-1; text-align: center;">No NFTs found</p>';
       }
@@ -2136,7 +2144,11 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     function openModal(nftId) {
       let foundNFT = nfts.find(n => n.id === nftId);
-      if (!foundNFT) foundNFT = userNFTs.find(n => n.id === nftId);
+      let isFromGallery = false;
+      if (!foundNFT) {
+        foundNFT = userNFTs.find(n => n.id === nftId);
+        isFromGallery = true;
+      }
       if (!foundNFT) return;
       
       selectedNFT = foundNFT;
@@ -2147,7 +2159,108 @@ const HTML_CONTENT = `<!DOCTYPE html>
       document.getElementById('modalOwner').textContent = foundNFT.owner;
       document.getElementById('modalPrice').textContent = foundNFT.price + ' ETH';
       document.getElementById('modalStatus').textContent = foundNFT.auction ? 'On Auction' : (foundNFT.forSale ? 'For Sale' : 'Not Listed');
+      
+      // Update modal button based on NFT source
+      const btn = document.querySelector('#modal .btn-primary');
+      if (isFromGallery) {
+        // Gallery NFT - show "Create Auction" button
+        btn.textContent = 'Create Auction';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.onclick = () => openAuctionFromNFT(foundNFT);
+      } else {
+        // Marketplace NFT - show "Buy Now" button
+        btn.textContent = 'Buy Now';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.onclick = () => buyNFT();
+      }
+      
       document.getElementById('modal').classList.add('active');
+    }
+    
+    // Open auction creation modal pre-filled with NFT data
+    function openAuctionFromNFT(nft) {
+      closeModal();
+      
+      const modal = document.getElementById('modal');
+      document.getElementById('modalImage').src = nft.image;
+      document.getElementById('modalTitle').textContent = 'Create Auction for ' + nft.name;
+      document.getElementById('modalDescription').innerHTML = \`
+        <form id="createAuctionForm">
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" required value="\${nft.name}" placeholder="Enter auction title">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" rows="3" placeholder="Describe your digital piece">\${nft.description}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Image URL</label>
+            <input type="url" name="imageUrl" value="\${nft.image}" placeholder="https://example.com/image.jpg">
+          </div>
+          <div class="form-group">
+            <label>Starting Price ($) *</label>
+            <input type="number" name="startingPrice" required min="1" placeholder="100" id="auctionStartingPrice" value="\${Math.round(nft.price * 100)}">
+          </div>
+          <div class="form-group">
+            <label>Duration</label>
+            <select name="durationHours">
+              <option value="12">12 hours</option>
+              <option value="24" selected>24 hours</option>
+              <option value="48">48 hours</option>
+              <option value="72">72 hours</option>
+              <option value="168">1 week</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Create Auction</button>
+        </form>\`;
+      
+      const creatorName = user?.username || 'You';
+      document.getElementById('modalCreator').textContent = nft.creator;
+      document.getElementById('modalOwner').textContent = creatorName;
+      document.getElementById('modalPrice').textContent = '$' + Math.round(nft.price * 100);
+      document.getElementById('modalStatus').textContent = 'Creating from Gallery';
+      
+      const modalBtn = document.querySelector('#modal .btn-primary');
+      if (modalBtn) modalBtn.style.display = 'none';
+      
+      setTimeout(() => {
+        document.getElementById('createAuctionForm')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const form = e.target;
+          const data = {
+            title: form.title.value,
+            description: form.description.value,
+            imageUrl: form.imageUrl.value,
+            startingPrice: parseInt(form.startingPrice.value),
+            durationHours: parseInt(form.durationHours.value)
+          };
+          
+          try {
+            const res = await fetch('/api/auctions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if (result.error) {
+              showToast(result.error);
+            } else {
+              showToast('Auction created successfully!');
+              closeModal();
+              navigate('auctions');
+              fetchAuctions();
+            }
+          } catch (err) {
+            showToast('Error creating auction');
+          }
+        });
+      }, 100);
+      
+      modal.classList.add('active');
     }
     
     function closeModal() {
