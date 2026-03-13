@@ -1172,6 +1172,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .footer-links {
       display: flex;
       gap: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .footer-links a {
       color: var(--gray);
@@ -1404,6 +1406,9 @@ const HTML_CONTENT = `<!DOCTYPE html>
       <div class="footer-section">
         <h4>NFT.etheroi</h4>
         <p>The next-generation marketplace for digital creators. Buy, sell, and auction unique digital art secured by blockchain.</p>
+        <div style="margin-top: 1rem;">
+          <a href="https://etheroi.com" target="_blank" style="display: inline-block; padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary), #8b5cf6); border-radius: 8px; color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600;">🌐 etheroi.com</a>
+        </div>
       </div>
       <div class="footer-section">
         <h4>Marketplace</h4>
@@ -1417,6 +1422,13 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <a href="#" onclick="navigate('create')">Create NFT</a>
         <a href="#" onclick="navigate('auctions')">Start Auction</a>
         <a href="#">Minting Guide</a>
+      </div>
+      <div class="footer-section">
+        <h4>Creator</h4>
+        <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a>
+        <a href="https://jeremylive.netlify.app" target="_blank">Portfolio</a>
+        <a href="https://jeremylive.netlify.app" target="_blank">Other Projects</a>
+        <a href="https://etheroi.com" target="_blank">AI Products</a>
       </div>
       <div class="footer-section">
         <h4>Support</h4>
@@ -1433,12 +1445,12 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <a href="#">Cookie Policy</a>
       </div>
       <div class="footer-social">
-        <a href="#">𝕏</a>
-        <a href="#">◉</a>
-        <a href="#">✈</a>
+        <a href="https://twitter.com" target="_blank" title="Twitter/X">𝕏</a>
+        <a href="https://discord.com" target="_blank" title="Discord">👾</a>
+        <a href="https://telegram.org" target="_blank" title="Telegram">✈</a>
       </div>
     </div>
-    <p style="margin-top: 2rem; font-size: 0.8rem;">&copy; 2026 NFT.etheroi. Built on blockchain technology. All rights reserved.</p>
+    <p style="margin-top: 2rem; font-size: 0.8rem;">&copy; 2026 <a href="https://jeremylive.netlify.app" target="_blank" style="color: var(--primary);">Jeremy Live</a>. Built on blockchain technology. All rights reserved.</p>
   </footer>
   
   <div class="modal-overlay" id="modal">
