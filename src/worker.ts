@@ -1184,28 +1184,57 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .footer-links a:hover {
       color: var(--primary);
     }
-    .footer-social {
+    .footer-bottom {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 1rem;
-      justify-content: center;
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .footer-social a {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: rgba(108, 99, 255, 0.1);
+    .footer-bottom-left {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.85rem;
+    }
+    .footer-bottom-right {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      transition: all 0.3s;
+      gap: 1rem;
     }
-    .footer-social a:hover {
-      background: var(--primary);
-      transform: translateY(-3px);
-      box-shadow: 0 5px 20px rgba(108, 99, 255, 0.4);
+    .footer-bottom-right a {
+      color: rgba(255, 255, 255, 0.6);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.3s;
     }
-    footer p { color: var(--gray); }
+    .footer-bottom-right a:hover {
+      color: #a78bfa;
+    }
+    .footer-divider {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    .footer-copyright {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.8rem;
+      padding-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .footer-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .footer-links-group {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
     
     .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--primary); color: white; padding: 1rem 2rem; border-radius: 12px; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 300; }
     .toast.show { transform: translateY(0); opacity: 1; }
@@ -1460,6 +1489,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     .hero-title-main {
       display: block;
+      margin-bottom: 1.5rem;
     }
     .gradient-text {
       background: linear-gradient(135deg, #fff 0%, #a78bfa 30%, #f472b6 60%, #fff 100%);
@@ -1688,17 +1718,23 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     .features-header {
       text-align: center;
-      margin-bottom: 4rem;
+      margin-bottom: 5rem;
     }
     .features-subtitle {
       color: rgba(255, 255, 255, 0.6);
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       margin-top: 1rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
     }
     .landing-features .section-title {
       text-align: center;
-      font-size: 2.8rem;
+      font-size: 3rem;
       margin-bottom: 1rem;
+      font-weight: 800;
+      letter-spacing: -1px;
     }
     .features-grid {
       display: grid;
@@ -1878,18 +1914,21 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .landing-footer {
       padding: 3rem 2rem;
       text-align: center;
-      border-top: 1px solid rgba(255,255,255,0.05);
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      background: linear-gradient(180deg, transparent, rgba(139, 92, 246, 0.03));
     }
     .landing-footer p {
-      color: var(--gray);
-      margin: 0.5rem 0;
+      color: rgba(255, 255, 255, 0.5);
+      margin: 0.75rem 0;
+      font-size: 0.95rem;
     }
     .landing-footer a {
-      color: var(--primary);
+      color: #a78bfa;
       text-decoration: none;
+      transition: color 0.3s;
     }
     .landing-footer a:hover {
-      text-decoration: underline;
+      color: #fff;
     }
     
     @media (max-width: 768px) {
@@ -2002,40 +2041,41 @@ const HTML_CONTENT = `<!DOCTYPE html>
   
   <footer>
     <div class="footer-content">
-      <div class="footer-section">
-        <h4>🚀 NFT.etheroi</h4>
-        <p>The next-generation marketplace for digital creators. Buy, sell, and auction unique digital art secured by blockchain technology.</p>
-        <div style="margin-top: 1rem;">
-          <a href="https://etheroi.com" target="_blank" style="display: inline-block; padding: 0.6rem 1.2rem; background: linear-gradient(135deg, var(--primary), #8b5cf6); border-radius: 25px; color: white; text-decoration: none; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);">✨ Explore AI Products</a>
+      <div class="footer-brand">
+        <div class="footer-logo-large">NFT<span>.etheroi</span></div>
+        <p class="footer-tagline">The next-generation NFT marketplace. Create, collect, and trade unique digital art secured by blockchain.</p>
+        <a href="https://etheroi.com" target="_blank" class="footer-cta">🌐 Explore AI Products</a>
+      </div>
+      <div class="footer-links-group">
+        <div class="footer-column">
+          <h4>🛒 Explore</h4>
+          <p>Discover unique digital art from creators worldwide</p>
         </div>
-      </div>
-      <div class="footer-section">
-        <h4>🛒 Explore</h4>
-        <span style="color: var(--gray); font-size: 0.9rem;">Discover unique digital art from creators worldwide</span>
-      </div>
-      <div class="footer-section">
-        <h4>🎨 Create</h4>
-        <span style="color: var(--gray); font-size: 0.9rem;">Mint your own NFTs and start selling in minutes</span>
-      </div>
-      <div class="footer-section">
-        <h4>🔨 Auctions</h4>
-        <span style="color: var(--gray); font-size: 0.9rem;">Bid on exclusive pieces and collect rare digital art</span>
-      </div>
-      <div class="footer-section">
-        <h4>👨‍💻 Creator</h4>
-        <span style="color: var(--gray); font-size: 0.9rem;">Built by <a href="https://jeremylive.netlify.app" target="_blank" style="color: var(--primary);">Jeremy Live</a> — Full Stack Developer & AI Enthusiast</span>
+        <div class="footer-column">
+          <h4>🎨 Create</h4>
+          <p>Mint your own NFTs and start selling</p>
+        </div>
+        <div class="footer-column">
+          <h4>🔨 Auctions</h4>
+          <p>Bid on exclusive pieces and collect rare art</p>
+        </div>
+        <div class="footer-column">
+          <h4>👨‍💻 Creator</h4>
+          <p>Built by <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a> — Software Engineer</p>
+        </div>
       </div>
     </div>
     <div class="footer-bottom">
-      <div class="footer-logo">NFT<span>.etheroi</span> ⚡</div>
-      <div class="footer-links">
-        <span style="color: var(--gray); font-size: 0.85rem;">Powered by Cloudflare Workers + D1</span>
+      <div class="footer-bottom-left">
+        <span>⚡ Powered by Cloudflare Workers + D1</span>
       </div>
-      <div class="footer-social">
-        <a href="https://www.linkedin.com/in/jeremy-live/" target="_blank" title="LinkedIn" style="font-size: 1.1rem;">💼</a>
+      <div class="footer-bottom-right">
+        <a href="https://www.linkedin.com/in/jeremy-live/" target="_blank" title="LinkedIn">LinkedIn</a>
+        <span class="footer-divider">•</span>
+        <a href="https://etheroi.com" target="_blank">etheroi.com</a>
       </div>
     </div>
-    <p style="margin-top: 2rem; font-size: 0.8rem; color: var(--gray);">🌟 Built with ❤️ by <a href="https://jeremylive.netlify.app" target="_blank" style="color: var(--primary);">Jeremy Live</a> — 2026 — <a href="https://etheroi.com" target="_blank" style="color: var(--secondary);">etheroi.com</a></p>
+    <p class="footer-copyright">🌟 Built with ❤️ — 2026</p>
   </footer>
   
   <div class="modal-overlay" id="modal">
@@ -2411,8 +2451,8 @@ const HTML_CONTENT = `<!DOCTYPE html>
           
           <!-- Footer Note -->
           <section class="landing-footer">
-            <p>🔗 Powered by <a href="https://etheroi.com" target="_blank">etheroi.com</a> — AI Products Platform</p>
-            <p>👨‍💻 Built by <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a> — Full Stack Developer</p>
+            <p>🔗 <a href="https://etheroi.com" target="_blank">etheroi.com</a> — AI Products Platform</p>
+            <p>👨‍💻 Built by <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a> — Software Engineer</p>
           </section>
         </div>
       \`;
