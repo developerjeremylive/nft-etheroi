@@ -1928,6 +1928,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     function showLoggedInUI() {
       document.getElementById('authOverlay').classList.add('hidden');
+      document.getElementById('landingOverlay').classList.add('hidden');
       document.getElementById('authBtn').classList.add('hidden');
       document.getElementById('logoutBtn').classList.remove('hidden');
       document.querySelectorAll('.protected').forEach(el => el.classList.remove('hidden'));
