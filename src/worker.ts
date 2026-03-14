@@ -1352,76 +1352,238 @@ const HTML_CONTENT = `<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       position: relative;
-      padding: 8rem 2rem 6rem;
+      padding: 6rem 2rem;
       overflow: hidden;
+      background: radial-gradient(ellipse at 50% 0%, rgba(88, 28, 135, 0.4) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.2) 0%, transparent 40%),
+                  radial-gradient(ellipse at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+                  #0a0a0f;
     }
-    .hero-particles {
+    .hero-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.5;
+      animation: orbFloat 20s ease-in-out infinite;
+    }
+    .hero-orb-1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+      top: -10%;
+      left: -10%;
+      animation-delay: 0s;
+    }
+    .hero-orb-2 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+      top: 40%;
+      right: -5%;
+      animation-delay: -7s;
+    }
+    .hero-orb-3 {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+      bottom: -5%;
+      left: 30%;
+      animation-delay: -14s;
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(30px, -30px) scale(1.05); }
+      50% { transform: translate(-20px, 20px) scale(0.95); }
+      75% { transform: translate(-30px, -20px) scale(1.02); }
+    }
+    .hero-grid {
       position: absolute;
       inset: 0;
       background-image: 
-        radial-gradient(2px 2px at 20px 30px, rgba(108, 99, 255, 0.4), transparent),
-        radial-gradient(2px 2px at 40px 70px, rgba(139, 92, 246, 0.3), transparent),
-        radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.3), transparent),
-        radial-gradient(2px 2px at 130px 80px, rgba(108, 99, 255, 0.4), transparent),
-        radial-gradient(1px 1px at 160px 120px, rgba(255, 255, 255, 0.2), transparent);
-      background-size: 200px 200px;
-      animation: particleFloat 20s linear infinite;
-      z-index: 0;
-    }
-    @keyframes particleFloat {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-200px); }
-    }
-    .hero-glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(108, 99, 255, 0.3) 0%, rgba(139, 92, 246, 0.15) 30%, transparent 70%);
-      animation: glowPulse 4s ease-in-out infinite;
-      z-index: 0;
-    }
-    @keyframes glowPulse {
-      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-      50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+        linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
     }
     .hero-content {
-      max-width: 800px;
+      max-width: 900px;
       text-align: center;
       position: relative;
       z-index: 1;
     }
+    .hero-badge-container {
+      margin-bottom: 2rem;
+    }
     .hero-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1.5rem;
-      background: rgba(108, 99, 255, 0.1);
-      border: 1px solid rgba(108, 99, 255, 0.3);
+      gap: 0.75rem;
+      padding: 0.75rem 1.75rem;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.3);
       border-radius: 50px;
-      color: #a5b4fc;
-      font-size: 0.85rem;
+      color: #c4b5fd;
+      font-size: 0.9rem;
       font-weight: 500;
-      margin-bottom: 2rem;
       letter-spacing: 0.5px;
+      backdrop-filter: blur(10px);
     }
     .pulse-dot {
-      width: 8px;
-      height: 8px;
-      background: #22c55e;
+      width: 10px;
+      height: 10px;
+      background: linear-gradient(135deg, #22c55e, #10b981);
       border-radius: 50%;
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
       animation: pulseDot 2s infinite;
     }
     @keyframes pulseDot {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-      50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.2); }
     }
     .landing-hero h1 {
-      font-size: 5rem;
+      font-size: 5.5rem;
       font-weight: 900;
       line-height: 1.05;
+      margin-bottom: 1.5rem;
+      color: white;
+      letter-spacing: -3px;
+    }
+    .hero-title-line {
+      display: block;
+      font-size: 0.45em;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 0.5rem;
+    }
+    .hero-title-main {
+      display: block;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 30%, #f472b6 60%, #fff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      background-size: 200% 200%;
+      animation: gradientShift 5s ease infinite;
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero-subtitle {
+      font-size: 1.4rem;
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 600px;
+      margin: 0 auto 3rem;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .hero-cta-container {
+      margin-bottom: 4rem;
+    }
+    .btn-magnetic {
+      position: relative;
+      transition: transform 0.3s;
+    }
+    .btn-magnetic:hover {
+      transform: scale(1.05);
+    }
+    .btn-glow {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1, #8b5cf6);
+      background-size: 200% 200%;
+      animation: btnGradient 3s ease infinite;
+      border: none;
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.5), 0 10px 30px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+    @keyframes btnGradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .btn-glow::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+    .btn-glow:hover::before {
+      left: 100%;
+    }
+    .btn-icon {
+      margin-right: 0.5rem;
+    }
+    .btn-large {
+      padding: 1.3rem 3.5rem;
+      font-size: 1.2rem;
+      border-radius: 60px;
+    }
+    .hero-value-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .value-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      border-radius: 50px;
+      transition: all 0.3s;
+    }
+    .value-item:hover {
+      background: rgba(139, 92, 246, 0.15);
+      transform: translateY(-3px);
+    }
+    .value-icon {
+      font-size: 1.2rem;
+    }
+    .value-text {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .value-divider {
+      width: 1px;
+      height: 30px;
+      background: linear-gradient(180deg, transparent, rgba(139, 92, 246, 0.4), transparent);
+    }
+    .hero-scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.8rem;
+      animation: bounce 2s infinite;
+    }
+    .scroll-arrow {
+      width: 24px;
+      height: 24px;
+      border-right: 2px solid rgba(139, 92, 246, 0.5);
+      border-bottom: 2px solid rgba(139, 92, 246, 0.5);
+      transform: rotate(45deg);
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(10px); }
+    }
+    
+    @media (max-width: 768px) {
       margin-bottom: 1.5rem;
       color: white;
       letter-spacing: -2px;
@@ -1512,7 +1674,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
     
     .landing-features {
       padding: 8rem 2rem;
-      background: linear-gradient(180deg, transparent, rgba(108, 99, 255, 0.05));
+      background: linear-gradient(180deg, transparent, rgba(139, 92, 246, 0.03));
       position: relative;
     }
     .landing-features::before {
@@ -1522,12 +1684,21 @@ const HTML_CONTENT = `<!DOCTYPE html>
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.5), transparent);
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.4), transparent);
+    }
+    .features-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    .features-subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1.1rem;
+      margin-top: 1rem;
     }
     .landing-features .section-title {
       text-align: center;
-      font-size: 2.5rem;
-      margin-bottom: 4rem;
+      font-size: 2.8rem;
+      margin-bottom: 1rem;
     }
     .features-grid {
       display: grid;
@@ -1722,9 +1893,14 @@ const HTML_CONTENT = `<!DOCTYPE html>
     }
     
     @media (max-width: 768px) {
-      .landing-hero h1 { font-size: 2.5rem; }
-      .hero-value { gap: 1rem; }
-      .value-item { padding: 0.5rem 1rem; }
+      .landing-hero h1 { font-size: 2.8rem; letter-spacing: -1px; }
+      .hero-title-line { font-size: 0.3em; letter-spacing: 2px; }
+      .hero-subtitle { font-size: 1.1rem; }
+      .hero-value-container { gap: 0.75rem; }
+      .value-item { padding: 0.5rem 0.75rem; }
+      .value-text { font-size: 0.75rem; }
+      .value-divider { display: none; }
+      .hero-scroll-indicator { display: none; }
       .features-grid { grid-template-columns: 1fr; }
       .steps-container { flex-direction: column; }
       .step-connector { display: none; }
@@ -2097,44 +2273,61 @@ const HTML_CONTENT = `<!DOCTYPE html>
         <div class="landing-page">
           <!-- Hero Section -->
           <section class="landing-hero">
-            <div class="hero-particles"></div>
-            <div class="hero-glow"></div>
+            <div class="hero-orb hero-orb-1"></div>
+            <div class="hero-orb hero-orb-2"></div>
+            <div class="hero-orb hero-orb-3"></div>
+            <div class="hero-grid"></div>
             <div class="hero-content">
-              <div class="hero-badge">
-                <span class="pulse-dot"></span>
-                Powered by Cloudflare Workers + D1
+              <div class="hero-badge-container">
+                <div class="hero-badge">
+                  <span class="pulse-dot"></span>
+                  <span>Powered by Cloudflare Workers + D1</span>
+                </div>
               </div>
-              <h1>The Future of <br><span class="gradient-text">Digital Art</span></h1>
+              <h1>
+                <span class="hero-title-line">The Future of</span>
+                <span class="gradient-text hero-title-main">Digital Art</span>
+              </h1>
               <p class="hero-subtitle">Create, collect, and trade unique digital artworks on the next-generation NFT marketplace. Secured by blockchain, powered by AI.</p>
-              <div class="hero-cta">
-                <button class="btn btn-primary btn-large btn-glow" onclick="openAuthModal()">
+              <div class="hero-cta-container">
+                <button class="btn btn-primary btn-large btn-glow btn-magnetic" onclick="openAuthModal()">
                   <span class="btn-icon">✨</span> Get Started — Free
                 </button>
               </div>
-              <div class="hero-value">
+              <div class="hero-value-container">
                 <div class="value-item">
                   <span class="value-icon">🔒</span>
                   <span class="value-text">Secure Ownership</span>
                 </div>
+                <div class="value-divider"></div>
                 <div class="value-item">
                   <span class="value-icon">⚡</span>
                   <span class="value-text">Instant Transactions</span>
                 </div>
+                <div class="value-divider"></div>
                 <div class="value-item">
                   <span class="value-icon">🌐</span>
                   <span class="value-text">Global Marketplace</span>
                 </div>
+                <div class="value-divider"></div>
                 <div class="value-item">
                   <span class="value-icon">🤖</span>
                   <span class="value-text">AI Integration</span>
                 </div>
               </div>
             </div>
+            <div class="hero-scroll-indicator">
+              <span>Scroll to explore</span>
+              <div class="scroll-arrow"></div>
+            </div>
           </section>
           
           <!-- Features Section -->
           <section class="landing-features">
-            <h2 class="section-title">Why Choose <span class="gradient-text">NFT.etheroi</span>?</h2>
+            <div class="features-header">
+              <h2 class="section-title">Why Choose <span class="gradient-text">NFT.etheroi</span>?</h2>
+              <p class="features-subtitle">Experience the next generation of digital art trading</p>
+            </div>
             <div class="features-grid">
               <div class="feature-card-large">
                 <div class="feature-glow"></div>
