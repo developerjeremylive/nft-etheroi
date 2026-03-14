@@ -2059,6 +2059,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <h4>🔨 Auctions</h4>
           <p>Bid on exclusive pieces and collect rare art</p>
         </div>
+        <div class="footer-column">
+          <h4>👨‍💻 Creator</h4>
+          <p>Built by <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a> — Software Engineer</p>
+        </div>
       </div>
     </div>
     <div class="footer-bottom">
