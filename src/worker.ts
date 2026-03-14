@@ -3200,8 +3200,10 @@ const HTML_CONTENT = `<!DOCTYPE html>
     });
     
     // Initialize
-    checkAuth();
-    render();
+    // First check auth status, then render
+    checkAuth().then(() => {
+      render();
+    });
   </script>
 </body>
 </html>`;
