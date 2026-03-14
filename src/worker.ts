@@ -1216,6 +1216,93 @@ const HTML_CONTENT = `<!DOCTYPE html>
     .footer-divider {
       color: rgba(255, 255, 255, 0.3);
     }
+    .creator-banner {
+      position: relative;
+      margin: 2rem auto;
+      max-width: 600px;
+      padding: 3px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #8b5cf6, #ec4899, #8b5cf6);
+      background-size: 200% 100%;
+      animation: creatorGradient 3s linear infinite;
+    }
+    @keyframes creatorGradient {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    .creator-banner-glow {
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(90deg, #8b5cf6, #ec4899, #8b5cf6);
+      border-radius: 18px;
+      filter: blur(15px);
+      opacity: 0.3;
+      animation: creatorGradient 3s linear infinite;
+    }
+    .creator-banner-content {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+      background: rgba(15, 15, 26, 0.95);
+      border-radius: 13px;
+      backdrop-filter: blur(10px);
+    }
+    .creator-icon {
+      font-size: 2.5rem;
+    }
+    .creator-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .creator-label {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+    }
+    .creator-name {
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .creator-name:hover {
+      color: #a78bfa;
+    }
+    .creator-role {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+    }
+    .creator-cta {
+      padding: 0.6rem 1.2rem;
+      background: rgba(139, 92, 246, 0.2);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 25px;
+      color: #a78bfa;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    .creator-cta:hover {
+      background: rgba(139, 92, 246, 0.4);
+      transform: translateY(-2px);
+    }
+    @media (max-width: 600px) {
+      .creator-banner-content {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+      .creator-info {
+        flex-direction: column;
+      }
+    }
     .footer-copyright {
       text-align: center;
       color: rgba(255, 255, 255, 0.4);
@@ -2059,11 +2146,22 @@ const HTML_CONTENT = `<!DOCTYPE html>
           <h4>🔨 Auctions</h4>
           <p>Bid on exclusive pieces and collect rare art</p>
         </div>
-        <div class="footer-column">
-          <h4>👨‍💻 Creator</h4>
-          <p>Built by <a href="https://jeremylive.netlify.app" target="_blank">Jeremy Live</a> — Software Engineer</p>
+      </div>
+      
+      <!-- Creator Banner -->
+      <div class="creator-banner">
+        <div class="creator-banner-glow"></div>
+        <div class="creator-banner-content">
+          <span class="creator-icon">👨‍💻</span>
+          <div class="creator-info">
+            <span class="creator-label">Created by</span>
+            <a href="https://jeremylive.netlify.app" target="_blank" class="creator-name">Jeremy Live</a>
+            <span class="creator-role">— Software Engineer</span>
+          </div>
+          <a href="https://jeremylive.netlify.app" target="_blank" class="creator-cta">View Portfolio →</a>
         </div>
       </div>
+      
     </div>
     <div class="footer-bottom">
       <div class="footer-bottom-left">
