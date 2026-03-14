@@ -2230,6 +2230,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
         if (landingOverlay) {
           document.getElementById('landingContent').innerHTML = renderLandingPage();
           landingOverlay.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
         }
         return;
       }
@@ -2237,6 +2238,7 @@ const HTML_CONTENT = `<!DOCTYPE html>
       // Hide landing modal when authenticated or not on home
       if (landingOverlay) {
         landingOverlay.classList.add('hidden');
+        document.body.style.overflow = '';
       }
       
       switch(currentPage) {
