@@ -1993,6 +1993,9 @@ const HTML_CONTENT = `<!DOCTYPE html>
           showLoggedInUI();
           loadUserNFTs();
           showToast(currentAuthTab === 'login' ? 'Welcome back!' : 'Account created successfully!', 'success');
+          // Show home page after login
+          currentPage = 'home';
+          render();
         } else {
           document.getElementById('authError').textContent = data.error || 'Authentication failed';
           document.getElementById('authError').classList.add('show');
